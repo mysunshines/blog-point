@@ -88,6 +88,8 @@ github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9G
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
+github.com/mysunshines/blog-ranking v1.0.4 h1:1AbtuD0V8d4NtxTO9Yq+9N6eu3p+d7NSBaPsOL7Wqe4=
+github.com/mysunshines/blog-ranking v1.0.4/go.mod h1:+OvjP7NEOA5WKZamLnlvMCBxU3Ioewk1/2EToJ7mabw=
 github.com/mysunshines/gocommon v1.10.0 h1:+063tLvLc3SGTvKp5G7n7nUkG7iqatWLgBJ2OIG3Ph4=
 github.com/mysunshines/gocommon v1.10.0/go.mod h1:mNhZPjDv4qzUNY0ORNFZgtOl3zJbL2XIZ4k6HAwUfMg=
 github.com/pelletier/go-toml/v2 v2.3.1 h1:MYEvvGnQjeNkRF1qUuGolNtNExTDwct51yp7olPtrEc=

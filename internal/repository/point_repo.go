@@ -123,8 +123,18 @@ func (r *PointRepository) CreateRule(ctx context.Context, rule *model.PointRule)
 }
 
 // UpdateRule 更新规则（只更新非零值字段）
+// 注意：status=0（停用）属零值，用本方法不会生效；需显式置零请用 UpdateRuleFields。
 func (r *PointRepository) UpdateRule(ctx context.Context, rule *model.PointRule) error {
-	return r.db.WithContext(ctx).Model(rule).Select("*").Omit("created_at").Updates(rule).Error
+	return r.db.WithContext(ctx).Model(rule).Omit("created_at").Updates(rule).Error
+}
+
+// UpdateRuleFields 按字段名显式更新规则（可写入零值，如 status=0 停用）
+func (r *PointRepository) UpdateRuleFields(ctx context.Context, id uint, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Model(&model.PointRule{}).
+		Where("id = ?", id).Updates(updates).Error
 }
 
 // DeleteRule 删除规则

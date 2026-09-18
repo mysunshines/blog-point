@@ -2,8 +2,10 @@ package v1
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"os"
 
 	"github.com/mysunshines/blog-point/internal/model"
 	"github.com/mysunshines/blog-point/internal/service"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/sony/gobreaker"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -52,6 +55,50 @@ func requireGRPCAdmin(ctx context.Context) error {
 		return status.Error(codes.PermissionDenied, "需要管理员权限")
 	}
 	return nil
+}
+
+// isInternalCall 判断是否为可信内部服务调用。
+// 内部服务（如 article-service）没有用户 JWT，改为携带共享令牌
+// （metadata: x-point-internal，由环境变量 POINT_INTERNAL_TOKEN 下发）。
+// 令牌未配置时内部通道关闭，仅用户 JWT 可用（与 ranking 摄入接口的令牌思路一致）。
+func isInternalCall(ctx context.Context) bool {
+	token := os.Getenv("POINT_INTERNAL_TOKEN")
+	if token == "" {
+		return false
+	}
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return false
+	}
+	for _, v := range md.Get("x-point-internal") {
+		if subtle.ConstantTimeCompare([]byte(v), []byte(token)) == 1 {
+			return true
+		}
+	}
+	return false
+}
+
+// resolveUser 解析目标用户：
+//   - 内部服务调用（带有效令牌）：信任请求中的 user_id（业务服务已确认过业务归属）
+//   - 用户调用：用 JWT 登录用户；显式指定他人需管理员权限
+func resolveUser(ctx context.Context, reqUserID uint32) (uint, error) {
+	if isInternalCall(ctx) {
+		if reqUserID == 0 {
+			return 0, status.Error(codes.InvalidArgument, "内部调用必须指定 user_id")
+		}
+		return uint(reqUserID), nil
+	}
+	uid, err := commonmiddleware.RequireGRPCAuth(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if reqUserID == 0 || uint(reqUserID) == uid {
+		return uid, nil
+	}
+	if err := requireGRPCAdmin(ctx); err != nil {
+		return 0, err
+	}
+	return uint(reqUserID), nil
 }
 
 // errCode 领域错误 → proto 错误码
@@ -136,11 +183,11 @@ func (h *GrpcPointHandler) GetPointLogs(ctx context.Context, req *pb.GetPointLog
 
 // HasPurchased 查询是否已购买某物品（付费文章 / 背景）
 func (h *GrpcPointHandler) HasPurchased(ctx context.Context, req *pb.HasPurchasedRequest) (*pb.HasPurchasedResponse, error) {
-	uid, err := commonmiddleware.RequireGRPCAuth(ctx)
+	target, err := resolveUser(ctx, req.UserId)
 	if err != nil {
 		return nil, err
 	}
-	ok, err := h.Svc.HasPurchased(ctx, uid, req.ItemType, uint(req.ItemId))
+	ok, err := h.Svc.HasPurchased(ctx, target, req.ItemType, uint(req.ItemId))
 	if err != nil {
 		return &pb.HasPurchasedResponse{Code: errCode(err), Message: err.Error()}, nil
 	}
@@ -158,18 +205,9 @@ func (h *GrpcPointHandler) HasPurchased(ctx context.Context, req *pb.HasPurchase
 // EarnPoints 事件加分（规则引擎入口）。
 // 未指定 user_id 时为当前登录用户加分；指定他人需管理员权限（防冒名加分）。
 func (h *GrpcPointHandler) EarnPoints(ctx context.Context, req *pb.EarnPointsRequest) (*pb.EarnPointsResponse, error) {
-	uid, err := commonmiddleware.RequireGRPCAuth(ctx)
+	target, err := resolveUser(ctx, req.UserId)
 	if err != nil {
 		return nil, err
-	}
-	target := uint(req.UserId)
-	if target == 0 {
-		target = uid
-	}
-	if target != uid {
-		if err := requireGRPCAdmin(ctx); err != nil {
-			return nil, err
-		}
 	}
 	// 上下文 JSON → map，供规则 condition 匹配
 	var ctxMap map[string]interface{}
@@ -201,12 +239,12 @@ func (h *GrpcPointHandler) EarnPoints(ctx context.Context, req *pb.EarnPointsReq
 
 // SpendPoints 消费积分（购买付费文章 / 背景），只能为自己消费
 func (h *GrpcPointHandler) SpendPoints(ctx context.Context, req *pb.SpendPointsRequest) (*pb.SpendPointsResponse, error) {
-	uid, err := commonmiddleware.RequireGRPCAuth(ctx)
+	target, err := resolveUser(ctx, req.UserId)
 	if err != nil {
 		return nil, err
 	}
 	balance, err := h.Svc.SpendPoints(ctx, &model.SpendPointsRequest{
-		UserID:   uid,
+		UserID:   target,
 		Amount:   req.Amount,
 		ItemType: req.ItemType,
 		ItemID:   uint(req.ItemId),

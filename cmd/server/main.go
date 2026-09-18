@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mysunshines/blog-point/internal/client"
 	v1 "github.com/mysunshines/blog-point/internal/handler/v1"
 	"github.com/mysunshines/blog-point/internal/repository"
 	"github.com/mysunshines/blog-point/internal/service"
@@ -258,6 +259,11 @@ func main() {
 		fmt.Printf("failed to register to consul: %v\n", err)
 		releaseInfra()
 		os.Exit(1)
+	}
+
+	// ⑤ 向 ranking-service 注册「用户积分榜」（best-effort，失败仅告警，不影响启动）
+	if err := client.RegisterUserPointsBoard(context.Background()); err != nil {
+		log.Warnf("register user points board failed: %v", err)
 	}
 
 	srv := NewServer(cfg)

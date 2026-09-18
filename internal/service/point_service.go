@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"strings"
 	"time"
 
+	"github.com/mysunshines/blog-point/internal/client"
 	"github.com/mysunshines/blog-point/internal/model"
 	"github.com/mysunshines/blog-point/internal/repository"
 	"gorm.io/gorm"
@@ -142,6 +144,12 @@ func (s *pointService) EarnPoints(ctx context.Context, req *model.EarnPointsRequ
 		}
 		result.Points += rule.Points
 		result.RuleCodes = append(result.RuleCodes, rule.Code)
+	}
+	// 产生加分后同步积分榜（best-effort）
+	if result.Points > 0 {
+		if p, err := s.repo.GetPoint(ctx, req.UserID); err == nil && p != nil {
+			s.syncBoard(ctx, req.UserID, p.Balance)
+		}
 	}
 	return result, nil
 }
@@ -385,6 +393,9 @@ func (s *pointService) SpendPoints(ctx context.Context, req *model.SpendPointsRe
 			Price:    req.Amount,
 		})
 	})
+	if err == nil {
+		s.syncBoard(ctx, req.UserID, balance)
+	}
 	return balance, err
 }
 
@@ -427,7 +438,30 @@ func (s *pointService) AdminUpdateRule(ctx context.Context, rule *model.PointRul
 		}
 		return err
 	}
-	return s.repo.UpdateRule(ctx, rule)
+	// 显式字段更新，避免「只改状态」时把未传字段清零（Select("*") 的坑）：
+	//   - 空字符串 / 0 视为「本次不修改」
+	//   - status 例外：0（停用）也必须能写入，故始终更新
+	// sort 传负数（-1）表示「不修改」，便于「仅启停」时保持原排序
+	updates := map[string]interface{}{"status": rule.Status}
+	if rule.Sort >= 0 {
+		updates["sort"] = rule.Sort
+	}
+	if rule.Name != "" {
+		updates["name"] = rule.Name
+	}
+	if rule.Condition != "" {
+		updates["condition"] = rule.Condition
+	}
+	if rule.Points != 0 {
+		updates["points"] = rule.Points
+	}
+	if rule.LimitType != "" {
+		updates["limit_type"] = rule.LimitType
+	}
+	if rule.LimitCount != 0 {
+		updates["limit_count"] = rule.LimitCount
+	}
+	return s.repo.UpdateRuleFields(ctx, rule.ID, updates)
 }
 
 func (s *pointService) AdminDeleteRule(ctx context.Context, id uint) error {
@@ -442,5 +476,16 @@ func (s *pointService) AdminAdjustPoints(ctx context.Context, userID uint, amoun
 	if userID == 0 || amount == 0 {
 		return 0, ErrBadRequest
 	}
-	return s.applyDelta(ctx, userID, amount, model.PointLogTypeAdminAdjust, "", "", 0, remark)
+	balance, err := s.applyDelta(ctx, userID, amount, model.PointLogTypeAdminAdjust, "", "", 0, remark)
+	if err == nil {
+		s.syncBoard(ctx, userID, balance)
+	}
+	return balance, err
+}
+
+// syncBoard 同步用户积分到积分榜（best-effort：榜单是派生数据，失败只告警）
+func (s *pointService) syncBoard(ctx context.Context, userID uint, balance int64) {
+	if err := client.SyncUserPoints(ctx, userID, balance); err != nil {
+		log.Printf("[ranking] sync user points failed user=%d: %v", userID, err)
+	}
 }
