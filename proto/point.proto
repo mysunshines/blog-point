@@ -1,0 +1,228 @@
+syntax = "proto3";
+
+package point.v1;
+
+option go_package = "github.com/mysunshines/blog-point/proto/pb/v1";
+
+// ============================================================================
+// gRPC Contract (source of truth for point-service)
+// ----------------------------------------------------------------------------
+// 部署形态：point-service 仅暴露纯 gRPC（默认 9107），HTTP 8087 仅承载探针
+//   （/health /ready /version），业务流量一律走 gRPC。
+//
+// 前端访问（经 Gateway 反射代理 /api/v1/*）：
+//   - Gateway 从 Consul 同步路由：point-service -> /api/v1/point
+//   - 方法名由 URL 末段 snake_case 推导（如 get_my_points -> GetMyPoints）
+//   - 鉴权约定：
+//       "登录"   = 需 JWT（由 Gateway 透传 Authorization 到 gRPC metadata）
+//       "管理员" = 需 JWT + 管理员角色（handler 内 RequireGRPCAdmin 校验）
+//   - 参数位置：GET 走 query string，其余走 request body。
+//
+// 备注：本 proto 不包含 google.api.http 注解——HTTP 路由由 Gateway 反射代理按约定推导。
+// ============================================================================
+
+// 错误码定义 (区间: 60000-69999)
+enum PointErrorCode {
+    POINT_SUCCESS = 0;
+    // POINT_INTERNAL_ERROR 复用 gocommon 通用内部错误码 10005，与通用码区间对齐。
+    POINT_INTERNAL_ERROR = 10005;
+    POINT_NOT_FOUND = 60001;          // 账户 / 规则不存在
+    POINT_BAD_REQUEST = 60002;        // 参数非法
+    POINT_INSUFFICIENT = 60003;       // 积分不足
+    POINT_ALREADY_CHECKED_IN = 60004; // 当日已签到
+    POINT_RULE_NOT_FOUND = 60005;     // 规则不存在
+    POINT_LIMIT_REACHED = 60006;      // 已达到规则限次
+}
+
+service PointService {
+    // --------------------------- 用户侧（需登录） ---------------------------
+    rpc CheckIn(CheckInRequest) returns (CheckInResponse);
+    rpc GetMyPoints(GetMyPointsRequest) returns (GetMyPointsResponse);
+    rpc GetPointLogs(GetPointLogsRequest) returns (GetPointLogsResponse);
+    rpc HasPurchased(HasPurchasedRequest) returns (HasPurchasedResponse);
+
+    // --------------------------- 业务服务调用（内部） ---------------------------
+    // 事件加分：业务服务上报事件，由规则引擎匹配并计分（分值不写死在调用方）。
+    rpc EarnPoints(EarnPointsRequest) returns (EarnPointsResponse);
+    // 消费积分：购买付费文章 / 背景等，扣减并记账。
+    rpc SpendPoints(SpendPointsRequest) returns (SpendPointsResponse);
+
+    // --------------------------- 后台管理（管理员，RequireGRPCAdmin） ---------------------------
+    rpc AdminListRules(AdminListRulesRequest) returns (AdminListRulesResponse);
+    rpc AdminCreateRule(AdminCreateRuleRequest) returns (AdminCreateRuleResponse);
+    rpc AdminUpdateRule(AdminUpdateRuleRequest) returns (AdminUpdateRuleResponse);
+    rpc AdminDeleteRule(AdminDeleteRuleRequest) returns (AdminDeleteRuleResponse);
+    rpc AdminAdjustPoints(AdminAdjustPointsRequest) returns (AdminAdjustPointsResponse);
+}
+
+// 积分账户
+message UserPoint {
+    uint32 user_id = 1;
+    int64  balance = 2;       // 当前可用积分
+    int64  total_earned = 3;  // 累计获得
+    int64  total_spent = 4;   // 累计消费
+    string updated_at = 5;
+}
+
+// 积分流水（对账 / 审计）
+message PointLog {
+    uint32 id = 1;
+    uint32 user_id = 2;
+    int64  amount = 3;        // 正=获得，负=消费
+    int64  balance_after = 4; // 变动后余额
+    string type = 5;          // earn / spend / admin_adjust
+    string rule_code = 6;     // 命中的规则 code（空表示非规则触发）
+    string related_type = 7;  // article / background ...
+    uint32 related_id = 8;
+    string remark = 9;
+    string created_at = 10;
+}
+
+// 积分规则（管理员可配，分值不写死在代码里）
+message PointRule {
+    uint32 id = 1;
+    string code = 2;          // 唯一标识，如 checkin_daily
+    string name = 3;          // 展示名
+    string event_type = 4;    // 触发事件：checkin / publish_article / weekly_rank ...
+    string condition = 5;     // JSON 条件，如 {"streak":7}、{"rank_lte":10}
+    int64  points = 6;        // 奖励积分
+    string limit_type = 7;    // none / daily / weekly / once（防刷）
+    int32  limit_count = 8;   // 限次窗口内最多发放次数
+    uint32 status = 9;        // 1=启用 0=停用
+    int32  sort = 10;
+    string created_at = 11;
+    string updated_at = 12;
+}
+
+// 签到结果
+message CheckInResult {
+    uint32 streak = 1;             // 本次签到后的连续天数
+    int64  points = 2;             // 本次获得积分
+    repeated string rules = 3;     // 命中的规则 code 列表
+}
+
+message CheckInRequest {}
+message CheckInResponse {
+    uint32 code = 1;
+    string message = 2;
+    CheckInResult result = 3;
+}
+
+message GetMyPointsRequest {}
+message GetMyPointsResponse {
+    uint32 code = 1;
+    string message = 2;
+    UserPoint point = 3;
+}
+
+message GetPointLogsRequest {
+    uint32 page = 1;
+    uint32 page_size = 2;
+}
+message GetPointLogsResponse {
+    uint32 code = 1;
+    string message = 2;
+    repeated PointLog logs = 3;
+    uint32 total = 4;
+}
+
+// 事件加分（内部 / 业务服务调用）
+message EarnPointsRequest {
+    string event_type = 1;    // checkin / publish_article / weekly_rank / article_purchased ...
+    uint32 user_id = 2;       // 目标用户；为 0 时取当前登录用户
+    string context = 3;       // JSON 上下文，供 condition 匹配（如 {"streak":7,"rank":3}）
+    string related_type = 4;  // article / background ...
+    uint32 related_id = 5;
+}
+message EarnPointsResponse {
+    uint32 code = 1;
+    string message = 2;
+    int64 points = 3;             // 实际发放积分
+    repeated string rules = 4;    // 命中的规则 code 列表
+}
+
+// 消费积分（购买付费文章 / 背景等）
+message SpendPointsRequest {
+    uint32 user_id = 1;       // 为 0 时取当前登录用户
+    int64  amount = 2;        // 消费积分（正数）
+    string item_type = 3;     // article / background
+    uint32 item_id = 4;
+    string remark = 5;
+}
+message SpendPointsResponse {
+    uint32 code = 1;
+    string message = 2;
+    int64 balance = 3;        // 消费后余额
+}
+
+message HasPurchasedRequest {
+    uint32 user_id = 1;       // 为 0 时取当前登录用户
+    string item_type = 2;     // article / background
+    uint32 item_id = 3;
+}
+message HasPurchasedResponse {
+    uint32 code = 1;
+    string message = 2;
+    bool purchased = 3;
+}
+
+// --------------------------- 后台管理 message ---------------------------
+
+message AdminListRulesRequest {}
+message AdminListRulesResponse {
+    uint32 code = 1;
+    string message = 2;
+    repeated PointRule rules = 3;
+}
+
+message AdminCreateRuleRequest {
+    string code = 1;
+    string name = 2;
+    string event_type = 3;
+    string condition = 4;
+    int64  points = 5;
+    string limit_type = 6;
+    int32  limit_count = 7;
+    int32  sort = 8;
+}
+message AdminCreateRuleResponse {
+    uint32 code = 1;
+    string message = 2;
+    PointRule rule = 3;
+}
+
+message AdminUpdateRuleRequest {
+    uint32 rule_id = 1;
+    string name = 2;
+    string condition = 3;
+    int64  points = 4;
+    string limit_type = 5;
+    int32  limit_count = 6;
+    uint32 status = 7;
+    int32  sort = 8;
+}
+message AdminUpdateRuleResponse {
+    uint32 code = 1;
+    string message = 2;
+    PointRule rule = 3;
+}
+
+message AdminDeleteRuleRequest {
+    uint32 rule_id = 1;
+}
+message AdminDeleteRuleResponse {
+    uint32 code = 1;
+    string message = 2;
+}
+
+// 管理员手动调整积分（纠错 / 运营发放）
+message AdminAdjustPointsRequest {
+    uint32 user_id = 1;
+    int64  amount = 2;        // 正=发放，负=扣减
+    string remark = 3;
+}
+message AdminAdjustPointsResponse {
+    uint32 code = 1;
+    string message = 2;
+    int64 balance = 3;        // 调整后余额
+}

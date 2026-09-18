@@ -1,0 +1,82 @@
+# ============================================================
+# point-service 配置（本地开发环境 / development）
+# ------------------------------------------------------------
+# 端口段：HTTP 8087 / gRPC 9107 / Metrics 9095
+# 段落顺序：app → grpc → http → database → redis → jwt → consul
+#          → metrics → rate_limit → server → loki → otel
+# ============================================================
+
+app:
+  name: "point-service"
+  env: "development"
+  log_dir: "./logs"
+  log_level: "info"
+
+grpc:
+  host: "0.0.0.0"
+  port: 9107
+
+http:
+  host: "0.0.0.0"
+  port: 8087
+
+# 共享 blog 库（积分账户 / 流水 / 规则 / 签到 / 已购 均在此库）
+database:
+  host: "localhost"
+  port: 3306
+  user: "root"
+  password: "root123"
+  name: "blog"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 3600
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 100
+
+jwt:
+  secret: "your-secret-key-change-in-production"
+  expire_time: 604800  # 秒；7 天
+
+consul:
+  address: "localhost:8500"
+  check_interval: 10
+  deregister_critical: 30
+
+metrics:
+  enabled: true
+  path: "/metrics"
+  port: 9095
+
+rate_limit:
+  enabled: true
+  qps: 2000
+  burst: 4000
+
+server:
+  grpc:
+    default_timeout_sec: 10
+    max_connection_idle_sec: 60
+    max_connection_age_sec: 120
+    max_connection_age_grace_sec: 30
+    min_ping_interval_sec: 30
+    max_concurrent_streams: 100
+  http:
+    read_timeout_sec: 30
+    read_header_timeout_sec: 10
+    write_timeout_sec: 30
+    idle_timeout_sec: 120
+    default_timeout_sec: 30
+
+loki:
+  enabled: false
+  url: "http://loki:3100/loki/api/v1/push"
+  tenant_id: ""
+
+otel:
+  enabled: false
+  endpoint: "otel-collector:4317"
