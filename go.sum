@@ -90,8 +90,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/mysunshines/blog-ranking v1.0.4 h1:1AbtuD0V8d4NtxTO9Yq+9N6eu3p+d7NSBaPsOL7Wqe4=
 github.com/mysunshines/blog-ranking v1.0.4/go.mod h1:+OvjP7NEOA5WKZamLnlvMCBxU3Ioewk1/2EToJ7mabw=
-github.com/mysunshines/gocommon v1.12.0 h1:4NSiPDg1XXS0TmzcWWZ6Tzb26NgWOTjNmFbG5wbIqk4=
-github.com/mysunshines/gocommon v1.12.0/go.mod h1:mNhZPjDv4qzUNY0ORNFZgtOl3zJbL2XIZ4k6HAwUfMg=
+github.com/mysunshines/gocommon v1.12.1 h1:u01GuuB7yzaQHroqAzfiSfd3K6Dyu1/ci2o302efkG4=
+github.com/mysunshines/gocommon v1.12.1/go.mod h1:mNhZPjDv4qzUNY0ORNFZgtOl3zJbL2XIZ4k6HAwUfMg=
 github.com/pelletier/go-toml/v2 v2.3.1 h1:MYEvvGnQjeNkRF1qUuGolNtNExTDwct51yp7olPtrEc=
 github.com/pelletier/go-toml/v2 v2.3.1/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
