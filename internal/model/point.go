@@ -30,7 +30,7 @@ func (UserPoint) TableName() string { return "user_points" }
 type PointLog struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
 	UserID       uint      `gorm:"index;not null" json:"user_id"`
-	Amount       int64     `gorm:"not null" json:"amount"`        // 正=获得，负=消费
+	Amount       int64     `gorm:"not null" json:"amount"` // 正=获得，负=消费
 	BalanceAfter int64     `gorm:"not null;default:0" json:"balance_after"`
 	Type         string    `gorm:"size:32;not null" json:"type"` // earn / spend / admin_adjust
 	RuleCode     string    `gorm:"size:64;not null;default:''" json:"rule_code"`
@@ -47,12 +47,12 @@ type PointRule struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
 	Code       string    `gorm:"uniqueIndex;size:64;not null" json:"code"` // 唯一标识，如 checkin_daily
 	Name       string    `gorm:"size:128;not null" json:"name"`
-	EventType  string    `gorm:"size:64;not null;index" json:"event_type"` // checkin / publish_article / weekly_rank ...
-	Condition  string    `gorm:"type:text" json:"condition"`               // JSON 条件，如 {"streak":7}
-	Points     int64     `gorm:"not null;default:0" json:"points"`         // 奖励积分
+	EventType  string    `gorm:"size:64;not null;index" json:"event_type"`          // checkin / publish_article / weekly_rank ...
+	Condition  string    `gorm:"type:text" json:"condition"`                        // JSON 条件，如 {"streak":7}
+	Points     int64     `gorm:"not null;default:0" json:"points"`                  // 奖励积分
 	LimitType  string    `gorm:"size:16;not null;default:'none'" json:"limit_type"` // none/daily/weekly/once
-	LimitCount int       `gorm:"not null;default:0" json:"limit_count"`    // 窗口内最多发放次数（0=不限）
-	Status     uint      `gorm:"not null;default:1" json:"status"`         // 1=启用 0=停用
+	LimitCount int       `gorm:"not null;default:0" json:"limit_count"`             // 窗口内最多发放次数（0=不限）
+	Status     uint      `gorm:"not null;default:1" json:"status"`                  // 1=启用 0=停用
 	Sort       int       `gorm:"not null;default:0" json:"sort"`
 	CreatedAt  time.Time `gorm:"<-:create" json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
@@ -100,10 +100,10 @@ const (
 
 // 事件类型（与规则 event_type 对应；后续扩展只需加常量 + 管理员配规则）
 const (
-	EventCheckin         = "checkin"          // 签到
-	EventPublishArticle  = "publish_article"  // 发布文章
-	EventWeeklyRank      = "weekly_rank"      // 周榜排名
-	EventArticleSold     = "article_purchased" // 文章被购买（作者收益）
+	EventCheckin        = "checkin"           // 签到
+	EventPublishArticle = "publish_article"   // 发布文章
+	EventWeeklyRank     = "weekly_rank"       // 周榜排名
+	EventArticleSold    = "article_purchased" // 文章被购买（作者收益）
 )
 
 // 规则启用状态

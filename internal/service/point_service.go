@@ -362,8 +362,8 @@ func (s *pointService) SpendPoints(ctx context.Context, req *model.SpendPointsRe
 			return ErrInsufficientPoints
 		}
 		if err := tx.Model(&model.UserPoint{}).Where("user_id = ?", req.UserID).Updates(map[string]interface{}{
-			"balance":      gorm.Expr("balance - ?", req.Amount),
-			"total_spent":  gorm.Expr("total_spent + ?", req.Amount),
+			"balance":     gorm.Expr("balance - ?", req.Amount),
+			"total_spent": gorm.Expr("total_spent + ?", req.Amount),
 		}).Error; err != nil {
 			return err
 		}

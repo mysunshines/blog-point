@@ -39,13 +39,6 @@ service PointService {
     rpc CheckIn(CheckInRequest) returns (CheckInResponse);
     rpc GetMyPoints(GetMyPointsRequest) returns (GetMyPointsResponse);
     rpc GetPointLogs(GetPointLogsRequest) returns (GetPointLogsResponse);
-    rpc HasPurchased(HasPurchasedRequest) returns (HasPurchasedResponse);
-
-    // --------------------------- 业务服务调用（内部） ---------------------------
-    // 事件加分：业务服务上报事件，由规则引擎匹配并计分（分值不写死在调用方）。
-    rpc EarnPoints(EarnPointsRequest) returns (EarnPointsResponse);
-    // 消费积分：购买付费文章 / 背景等，扣减并记账。
-    rpc SpendPoints(SpendPointsRequest) returns (SpendPointsResponse);
 
     // --------------------------- 后台管理（管理员，RequireGRPCAdmin） ---------------------------
     rpc AdminListRules(AdminListRulesRequest) returns (AdminListRulesResponse);

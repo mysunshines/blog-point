@@ -7,11 +7,12 @@
 package v1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -1978,15 +1979,11 @@ const file_point_proto_rawDesc = "" +
 	"\x12POINT_INSUFFICIENT\x10\xe3\xd4\x03\x12\x1e\n" +
 	"\x18POINT_ALREADY_CHECKED_IN\x10\xe4\xd4\x03\x12\x1a\n" +
 	"\x14POINT_RULE_NOT_FOUND\x10\xe5\xd4\x03\x12\x19\n" +
-	"\x13POINT_LIMIT_REACHED\x10\xe6\xd4\x032\x88\a\n" +
+	"\x13POINT_LIMIT_REACHED\x10\xe6\xd4\x032\xa4\x05\n" +
 	"\fPointService\x12>\n" +
 	"\aCheckIn\x12\x18.point.v1.CheckInRequest\x1a\x19.point.v1.CheckInResponse\x12J\n" +
 	"\vGetMyPoints\x12\x1c.point.v1.GetMyPointsRequest\x1a\x1d.point.v1.GetMyPointsResponse\x12M\n" +
-	"\fGetPointLogs\x12\x1d.point.v1.GetPointLogsRequest\x1a\x1e.point.v1.GetPointLogsResponse\x12M\n" +
-	"\fHasPurchased\x12\x1d.point.v1.HasPurchasedRequest\x1a\x1e.point.v1.HasPurchasedResponse\x12G\n" +
-	"\n" +
-	"EarnPoints\x12\x1b.point.v1.EarnPointsRequest\x1a\x1c.point.v1.EarnPointsResponse\x12J\n" +
-	"\vSpendPoints\x12\x1c.point.v1.SpendPointsRequest\x1a\x1d.point.v1.SpendPointsResponse\x12S\n" +
+	"\fGetPointLogs\x12\x1d.point.v1.GetPointLogsRequest\x1a\x1e.point.v1.GetPointLogsResponse\x12S\n" +
 	"\x0eAdminListRules\x12\x1f.point.v1.AdminListRulesRequest\x1a .point.v1.AdminListRulesResponse\x12V\n" +
 	"\x0fAdminCreateRule\x12 .point.v1.AdminCreateRuleRequest\x1a!.point.v1.AdminCreateRuleResponse\x12V\n" +
 	"\x0fAdminUpdateRule\x12 .point.v1.AdminUpdateRuleRequest\x1a!.point.v1.AdminUpdateRuleResponse\x12V\n" +
@@ -2046,27 +2043,21 @@ var file_point_proto_depIdxs = []int32{
 	5,  // 6: point.v1.PointService.CheckIn:input_type -> point.v1.CheckInRequest
 	7,  // 7: point.v1.PointService.GetMyPoints:input_type -> point.v1.GetMyPointsRequest
 	9,  // 8: point.v1.PointService.GetPointLogs:input_type -> point.v1.GetPointLogsRequest
-	15, // 9: point.v1.PointService.HasPurchased:input_type -> point.v1.HasPurchasedRequest
-	11, // 10: point.v1.PointService.EarnPoints:input_type -> point.v1.EarnPointsRequest
-	13, // 11: point.v1.PointService.SpendPoints:input_type -> point.v1.SpendPointsRequest
-	17, // 12: point.v1.PointService.AdminListRules:input_type -> point.v1.AdminListRulesRequest
-	19, // 13: point.v1.PointService.AdminCreateRule:input_type -> point.v1.AdminCreateRuleRequest
-	21, // 14: point.v1.PointService.AdminUpdateRule:input_type -> point.v1.AdminUpdateRuleRequest
-	23, // 15: point.v1.PointService.AdminDeleteRule:input_type -> point.v1.AdminDeleteRuleRequest
-	25, // 16: point.v1.PointService.AdminAdjustPoints:input_type -> point.v1.AdminAdjustPointsRequest
-	6,  // 17: point.v1.PointService.CheckIn:output_type -> point.v1.CheckInResponse
-	8,  // 18: point.v1.PointService.GetMyPoints:output_type -> point.v1.GetMyPointsResponse
-	10, // 19: point.v1.PointService.GetPointLogs:output_type -> point.v1.GetPointLogsResponse
-	16, // 20: point.v1.PointService.HasPurchased:output_type -> point.v1.HasPurchasedResponse
-	12, // 21: point.v1.PointService.EarnPoints:output_type -> point.v1.EarnPointsResponse
-	14, // 22: point.v1.PointService.SpendPoints:output_type -> point.v1.SpendPointsResponse
-	18, // 23: point.v1.PointService.AdminListRules:output_type -> point.v1.AdminListRulesResponse
-	20, // 24: point.v1.PointService.AdminCreateRule:output_type -> point.v1.AdminCreateRuleResponse
-	22, // 25: point.v1.PointService.AdminUpdateRule:output_type -> point.v1.AdminUpdateRuleResponse
-	24, // 26: point.v1.PointService.AdminDeleteRule:output_type -> point.v1.AdminDeleteRuleResponse
-	26, // 27: point.v1.PointService.AdminAdjustPoints:output_type -> point.v1.AdminAdjustPointsResponse
-	17, // [17:28] is the sub-list for method output_type
-	6,  // [6:17] is the sub-list for method input_type
+	17, // 9: point.v1.PointService.AdminListRules:input_type -> point.v1.AdminListRulesRequest
+	19, // 10: point.v1.PointService.AdminCreateRule:input_type -> point.v1.AdminCreateRuleRequest
+	21, // 11: point.v1.PointService.AdminUpdateRule:input_type -> point.v1.AdminUpdateRuleRequest
+	23, // 12: point.v1.PointService.AdminDeleteRule:input_type -> point.v1.AdminDeleteRuleRequest
+	25, // 13: point.v1.PointService.AdminAdjustPoints:input_type -> point.v1.AdminAdjustPointsRequest
+	6,  // 14: point.v1.PointService.CheckIn:output_type -> point.v1.CheckInResponse
+	8,  // 15: point.v1.PointService.GetMyPoints:output_type -> point.v1.GetMyPointsResponse
+	10, // 16: point.v1.PointService.GetPointLogs:output_type -> point.v1.GetPointLogsResponse
+	18, // 17: point.v1.PointService.AdminListRules:output_type -> point.v1.AdminListRulesResponse
+	20, // 18: point.v1.PointService.AdminCreateRule:output_type -> point.v1.AdminCreateRuleResponse
+	22, // 19: point.v1.PointService.AdminUpdateRule:output_type -> point.v1.AdminUpdateRuleResponse
+	24, // 20: point.v1.PointService.AdminDeleteRule:output_type -> point.v1.AdminDeleteRuleResponse
+	26, // 21: point.v1.PointService.AdminAdjustPoints:output_type -> point.v1.AdminAdjustPointsResponse
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name

@@ -7,13 +7,16 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 
 	"github.com/mysunshines/blog-point/internal/client"
+	v0 "github.com/mysunshines/blog-point/internal/handler/v0"
 	v1 "github.com/mysunshines/blog-point/internal/handler/v1"
 	"github.com/mysunshines/blog-point/internal/repository"
 	"github.com/mysunshines/blog-point/internal/service"
+	v0pb "github.com/mysunshines/blog-point/proto/pb/v0"
 	pb "github.com/mysunshines/blog-point/proto/pb/v1"
 
 	goconfig "github.com/mysunshines/gocommon/config"
@@ -37,6 +40,7 @@ var Version = "dev"
 var (
 	metricsCancel context.CancelFunc
 	deregister    func() error
+	serviceName   string
 )
 
 // Server 积分服务进程（HTTP 探活 + gRPC 业务 + Metrics）
@@ -171,7 +175,10 @@ func (s *Server) runGRPCServer() {
 	)
 
 	pb.RegisterPointServiceServer(s.grpcServer, &v1.GrpcPointHandler{Svc: s.pointSvc, Cb: s.cb})
-	// 注册反射服务：Gateway 动态代理依赖反射推导方法
+	// 注册 v0 摄入服务（point.v0.PointIngestService）：仅内网服务经 Consul 直连调用，
+	// 公网网关 DeriveGRPCService 仅硬编码 v1，故 v0 天然不进公网入口（纵深防御）。
+	v0pb.RegisterPointIngestServiceServer(s.grpcServer, &v0.GrpcPointHandler{Svc: s.pointSvc})
+	// 注册反射服务：Gateway 动态代理依赖反射推导方法（仅枚举 point.v1.PointService）
 	reflection.Register(s.grpcServer)
 
 	log.Infof("gRPC server listening on %s", addr)
@@ -237,38 +244,64 @@ func registerToConsul(cfg *goconfig.Config) (func() error, error) {
 }
 
 func main() {
+	// 顶层兜底：panic 与 run 返回 err 两条路径收敛到同一个出口，
+	// 自然走到 defer 统一释放资源（避免中途 log.Fatalf/os.Exit 跳过 defer）。
+	var runErr error
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("panic recovered in main: %v\n%s", r, debug.Stack())
+			runErr = fmt.Errorf("panic: %v", r)
+		}
+		if runErr != nil {
+			log.Errorf("%s exited: %v", serviceName, runErr)
+		}
+		releaseInfra()
+		if runErr != nil {
+			os.Exit(1)
+		}
+	}()
+
+	runErr = run()
+}
+
+// run 承载全部启动逻辑，任一环节失败返回 error，由 main 的 defer 兜底统一收口
+// （保证无论 panic 还是启动失败，都会走到 releaseInfra 释放资源并统一退出码）。
+func run() error {
 	// ① 加载配置（APP_ENV 解析 + 默认值兜底）
 	cfg, err := goconfig.LoadByEnv()
 	if err != nil {
-		fmt.Printf("failed to load config: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to load config: %v", err)
 	}
+	serviceName = cfg.App.Name
 
-	// ② 初始化基础设施
+	// ② 初始化日志
+	log.Init(cfg.App.LogDir, cfg.App.LogLevel, serviceName)
+
+	// ③ 初始化基础设施
 	if err := initInfra(cfg); err != nil {
-		fmt.Printf("failed to init infra: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to init infra: %v", err)
 	}
 
-	// ③ 启用 Consul 服务发现（供调用下游时解析实例）
+	// ④ 启用 Consul 服务发现（供调用下游时解析实例）
 	consul.UseConsulDiscovery(cfg.Consul.Address)
 
-	// ④ 注册本服务到 Consul（Gateway 由此自动同步 /api/v1/point 路由）
+	// ⑤ 注册本服务到 Consul（Gateway 由此自动同步 /api/v1/point 路由）
 	deregister, err = registerToConsul(cfg)
 	if err != nil {
-		fmt.Printf("failed to register to consul: %v\n", err)
-		releaseInfra()
-		os.Exit(1)
+		return fmt.Errorf("failed to register to consul: %v", err)
 	}
 
-	// ⑤ 向 ranking-service 注册「用户积分榜」（best-effort，失败仅告警，不影响启动）
+	// ⑥ 向 ranking-service 注册「用户积分榜」（best-effort，失败仅告警，不影响启动）
 	if err := client.RegisterUserPointsBoard(context.Background()); err != nil {
 		log.Warnf("register user points board failed: %v", err)
 	}
 
 	srv := NewServer(cfg)
 	if err := srv.Run(); err != nil {
-		log.Errorf("server exit: %v", err)
+		return fmt.Errorf("server exit: %v", err)
 	}
+
+	// ⑦ 正常退出：先从 Consul 摘流量，再释放全局资源
 	shutdown()
+	return nil
 }

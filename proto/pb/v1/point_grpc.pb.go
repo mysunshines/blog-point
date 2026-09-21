@@ -8,6 +8,7 @@ package v1
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -22,9 +23,6 @@ const (
 	PointService_CheckIn_FullMethodName           = "/point.v1.PointService/CheckIn"
 	PointService_GetMyPoints_FullMethodName       = "/point.v1.PointService/GetMyPoints"
 	PointService_GetPointLogs_FullMethodName      = "/point.v1.PointService/GetPointLogs"
-	PointService_HasPurchased_FullMethodName      = "/point.v1.PointService/HasPurchased"
-	PointService_EarnPoints_FullMethodName        = "/point.v1.PointService/EarnPoints"
-	PointService_SpendPoints_FullMethodName       = "/point.v1.PointService/SpendPoints"
 	PointService_AdminListRules_FullMethodName    = "/point.v1.PointService/AdminListRules"
 	PointService_AdminCreateRule_FullMethodName   = "/point.v1.PointService/AdminCreateRule"
 	PointService_AdminUpdateRule_FullMethodName   = "/point.v1.PointService/AdminUpdateRule"
@@ -40,12 +38,6 @@ type PointServiceClient interface {
 	CheckIn(ctx context.Context, in *CheckInRequest, opts ...grpc.CallOption) (*CheckInResponse, error)
 	GetMyPoints(ctx context.Context, in *GetMyPointsRequest, opts ...grpc.CallOption) (*GetMyPointsResponse, error)
 	GetPointLogs(ctx context.Context, in *GetPointLogsRequest, opts ...grpc.CallOption) (*GetPointLogsResponse, error)
-	HasPurchased(ctx context.Context, in *HasPurchasedRequest, opts ...grpc.CallOption) (*HasPurchasedResponse, error)
-	// --------------------------- 业务服务调用（内部） ---------------------------
-	// 事件加分：业务服务上报事件，由规则引擎匹配并计分（分值不写死在调用方）。
-	EarnPoints(ctx context.Context, in *EarnPointsRequest, opts ...grpc.CallOption) (*EarnPointsResponse, error)
-	// 消费积分：购买付费文章 / 背景等，扣减并记账。
-	SpendPoints(ctx context.Context, in *SpendPointsRequest, opts ...grpc.CallOption) (*SpendPointsResponse, error)
 	// --------------------------- 后台管理（管理员，RequireGRPCAdmin） ---------------------------
 	AdminListRules(ctx context.Context, in *AdminListRulesRequest, opts ...grpc.CallOption) (*AdminListRulesResponse, error)
 	AdminCreateRule(ctx context.Context, in *AdminCreateRuleRequest, opts ...grpc.CallOption) (*AdminCreateRuleResponse, error)
@@ -86,36 +78,6 @@ func (c *pointServiceClient) GetPointLogs(ctx context.Context, in *GetPointLogsR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPointLogsResponse)
 	err := c.cc.Invoke(ctx, PointService_GetPointLogs_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pointServiceClient) HasPurchased(ctx context.Context, in *HasPurchasedRequest, opts ...grpc.CallOption) (*HasPurchasedResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(HasPurchasedResponse)
-	err := c.cc.Invoke(ctx, PointService_HasPurchased_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pointServiceClient) EarnPoints(ctx context.Context, in *EarnPointsRequest, opts ...grpc.CallOption) (*EarnPointsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(EarnPointsResponse)
-	err := c.cc.Invoke(ctx, PointService_EarnPoints_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pointServiceClient) SpendPoints(ctx context.Context, in *SpendPointsRequest, opts ...grpc.CallOption) (*SpendPointsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SpendPointsResponse)
-	err := c.cc.Invoke(ctx, PointService_SpendPoints_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -180,12 +142,6 @@ type PointServiceServer interface {
 	CheckIn(context.Context, *CheckInRequest) (*CheckInResponse, error)
 	GetMyPoints(context.Context, *GetMyPointsRequest) (*GetMyPointsResponse, error)
 	GetPointLogs(context.Context, *GetPointLogsRequest) (*GetPointLogsResponse, error)
-	HasPurchased(context.Context, *HasPurchasedRequest) (*HasPurchasedResponse, error)
-	// --------------------------- 业务服务调用（内部） ---------------------------
-	// 事件加分：业务服务上报事件，由规则引擎匹配并计分（分值不写死在调用方）。
-	EarnPoints(context.Context, *EarnPointsRequest) (*EarnPointsResponse, error)
-	// 消费积分：购买付费文章 / 背景等，扣减并记账。
-	SpendPoints(context.Context, *SpendPointsRequest) (*SpendPointsResponse, error)
 	// --------------------------- 后台管理（管理员，RequireGRPCAdmin） ---------------------------
 	AdminListRules(context.Context, *AdminListRulesRequest) (*AdminListRulesResponse, error)
 	AdminCreateRule(context.Context, *AdminCreateRuleRequest) (*AdminCreateRuleResponse, error)
@@ -210,15 +166,6 @@ func (UnimplementedPointServiceServer) GetMyPoints(context.Context, *GetMyPoints
 }
 func (UnimplementedPointServiceServer) GetPointLogs(context.Context, *GetPointLogsRequest) (*GetPointLogsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPointLogs not implemented")
-}
-func (UnimplementedPointServiceServer) HasPurchased(context.Context, *HasPurchasedRequest) (*HasPurchasedResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method HasPurchased not implemented")
-}
-func (UnimplementedPointServiceServer) EarnPoints(context.Context, *EarnPointsRequest) (*EarnPointsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method EarnPoints not implemented")
-}
-func (UnimplementedPointServiceServer) SpendPoints(context.Context, *SpendPointsRequest) (*SpendPointsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SpendPoints not implemented")
 }
 func (UnimplementedPointServiceServer) AdminListRules(context.Context, *AdminListRulesRequest) (*AdminListRulesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AdminListRules not implemented")
@@ -306,60 +253,6 @@ func _PointService_GetPointLogs_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PointServiceServer).GetPointLogs(ctx, req.(*GetPointLogsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PointService_HasPurchased_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HasPurchasedRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PointServiceServer).HasPurchased(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PointService_HasPurchased_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PointServiceServer).HasPurchased(ctx, req.(*HasPurchasedRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PointService_EarnPoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EarnPointsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PointServiceServer).EarnPoints(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PointService_EarnPoints_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PointServiceServer).EarnPoints(ctx, req.(*EarnPointsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PointService_SpendPoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SpendPointsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PointServiceServer).SpendPoints(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PointService_SpendPoints_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PointServiceServer).SpendPoints(ctx, req.(*SpendPointsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -472,18 +365,6 @@ var PointService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPointLogs",
 			Handler:    _PointService_GetPointLogs_Handler,
-		},
-		{
-			MethodName: "HasPurchased",
-			Handler:    _PointService_HasPurchased_Handler,
-		},
-		{
-			MethodName: "EarnPoints",
-			Handler:    _PointService_EarnPoints_Handler,
-		},
-		{
-			MethodName: "SpendPoints",
-			Handler:    _PointService_SpendPoints_Handler,
 		},
 		{
 			MethodName: "AdminListRules",
