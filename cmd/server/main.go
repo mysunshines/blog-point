@@ -297,6 +297,15 @@ func run() error {
 	}
 
 	srv := NewServer(cfg)
+
+	// ⑥' 全量重建用户积分榜：积分只在「变动时」同步到 ranking-service，若 Redis
+	//     重启/数据丢失，榜单会为空且不自愈。启动时按 DB 余额覆盖重建（best-effort）。
+	if n, err := srv.pointSvc.RebuildUserPointsBoard(context.Background()); err != nil {
+		log.Warnf("rebuild user points board failed: %v", err)
+	} else {
+		log.Infof("user points board rebuilt from DB: %d users", n)
+	}
+
 	if err := srv.Run(); err != nil {
 		return fmt.Errorf("server exit: %v", err)
 	}

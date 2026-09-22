@@ -94,6 +94,27 @@ func (h *GrpcPointHandler) CheckIn(ctx context.Context, req *pb.CheckInRequest) 
 	}, nil
 }
 
+// GetCheckinStatus 查询签到状态（只读，供前端判断是否已签到今日）
+func (h *GrpcPointHandler) GetCheckinStatus(ctx context.Context, req *pb.GetCheckinStatusRequest) (*pb.GetCheckinStatusResponse, error) {
+	uid, err := commonmiddleware.RequireGRPCAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res, err := h.Svc.GetCheckinStatus(ctx, uid)
+	if err != nil {
+		return &pb.GetCheckinStatusResponse{Code: errCode(err), Message: err.Error()}, nil
+	}
+	return &pb.GetCheckinStatusResponse{
+		Code:    uint32(pb.PointErrorCode_POINT_SUCCESS),
+		Message: "success",
+		Status: &pb.CheckinStatus{
+			CheckedInToday:  res.CheckedInToday,
+			Streak:          uint32(res.Streak),
+			LastCheckinDate: res.LastCheckinDate,
+		},
+	}, nil
+}
+
 // GetMyPoints 查询我的积分账户
 func (h *GrpcPointHandler) GetMyPoints(ctx context.Context, req *pb.GetMyPointsRequest) (*pb.GetMyPointsResponse, error) {
 	uid, err := commonmiddleware.RequireGRPCAuth(ctx)

@@ -51,6 +51,13 @@ func (r *PointRepository) EnsurePoint(ctx context.Context, userID uint) (*model.
 	return r.GetPoint(ctx, userID)
 }
 
+// ListAllPoints 列出全部积分账户（用于启动时全量重建积分榜：Redis 重启/数据丢失后自愈）
+func (r *PointRepository) ListAllPoints(ctx context.Context) ([]*model.UserPoint, error) {
+	var points []*model.UserPoint
+	err := r.db.WithContext(ctx).Find(&points).Error
+	return points, err
+}
+
 // ============================================================================
 // 流水
 // ============================================================================

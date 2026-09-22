@@ -39,6 +39,7 @@ service PointService {
     rpc CheckIn(CheckInRequest) returns (CheckInResponse);
     rpc GetMyPoints(GetMyPointsRequest) returns (GetMyPointsResponse);
     rpc GetPointLogs(GetPointLogsRequest) returns (GetPointLogsResponse);
+    rpc GetCheckinStatus(GetCheckinStatusRequest) returns (GetCheckinStatusResponse);
 
     // --------------------------- 后台管理（管理员，RequireGRPCAdmin） ---------------------------
     rpc AdminListRules(AdminListRulesRequest) returns (AdminListRulesResponse);
@@ -99,6 +100,20 @@ message CheckInResponse {
     uint32 code = 1;
     string message = 2;
     CheckInResult result = 3;
+}
+
+// 签到状态（只读，供前端渲染「今日是否已签到」）
+message CheckinStatus {
+    bool checked_in_today = 1;    // 今日是否已签到
+    uint32 streak = 2;            // 当前连续签到天数（今天未签到但昨天签到了仍保留；断了则为 0）
+    string last_checkin_date = 3; // 最近一次签到日期 YYYY-MM-DD（无记录则空）
+}
+
+message GetCheckinStatusRequest {}
+message GetCheckinStatusResponse {
+    uint32 code = 1;
+    string message = 2;
+    CheckinStatus status = 3;
 }
 
 message GetMyPointsRequest {}

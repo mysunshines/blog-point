@@ -7,12 +7,11 @@
 package v1
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -572,6 +571,163 @@ func (x *CheckInResponse) GetResult() *CheckInResult {
 	return nil
 }
 
+// 签到状态（只读，供前端渲染「今日是否已签到」）
+type CheckinStatus struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	CheckedInToday  bool                   `protobuf:"varint,1,opt,name=checked_in_today,json=checkedInToday,proto3" json:"checked_in_today,omitempty"`   // 今日是否已签到
+	Streak          uint32                 `protobuf:"varint,2,opt,name=streak,proto3" json:"streak,omitempty"`                                           // 当前连续签到天数（今天未签到但昨天签到了仍保留；断了则为 0）
+	LastCheckinDate string                 `protobuf:"bytes,3,opt,name=last_checkin_date,json=lastCheckinDate,proto3" json:"last_checkin_date,omitempty"` // 最近一次签到日期 YYYY-MM-DD（无记录则空）
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *CheckinStatus) Reset() {
+	*x = CheckinStatus{}
+	mi := &file_point_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckinStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckinStatus) ProtoMessage() {}
+
+func (x *CheckinStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_point_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckinStatus.ProtoReflect.Descriptor instead.
+func (*CheckinStatus) Descriptor() ([]byte, []int) {
+	return file_point_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CheckinStatus) GetCheckedInToday() bool {
+	if x != nil {
+		return x.CheckedInToday
+	}
+	return false
+}
+
+func (x *CheckinStatus) GetStreak() uint32 {
+	if x != nil {
+		return x.Streak
+	}
+	return 0
+}
+
+func (x *CheckinStatus) GetLastCheckinDate() string {
+	if x != nil {
+		return x.LastCheckinDate
+	}
+	return ""
+}
+
+type GetCheckinStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCheckinStatusRequest) Reset() {
+	*x = GetCheckinStatusRequest{}
+	mi := &file_point_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCheckinStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCheckinStatusRequest) ProtoMessage() {}
+
+func (x *GetCheckinStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_point_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCheckinStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetCheckinStatusRequest) Descriptor() ([]byte, []int) {
+	return file_point_proto_rawDescGZIP(), []int{7}
+}
+
+type GetCheckinStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          uint32                 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Status        *CheckinStatus         `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCheckinStatusResponse) Reset() {
+	*x = GetCheckinStatusResponse{}
+	mi := &file_point_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCheckinStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCheckinStatusResponse) ProtoMessage() {}
+
+func (x *GetCheckinStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_point_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCheckinStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetCheckinStatusResponse) Descriptor() ([]byte, []int) {
+	return file_point_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetCheckinStatusResponse) GetCode() uint32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *GetCheckinStatusResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *GetCheckinStatusResponse) GetStatus() *CheckinStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
 type GetMyPointsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -580,7 +736,7 @@ type GetMyPointsRequest struct {
 
 func (x *GetMyPointsRequest) Reset() {
 	*x = GetMyPointsRequest{}
-	mi := &file_point_proto_msgTypes[6]
+	mi := &file_point_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -592,7 +748,7 @@ func (x *GetMyPointsRequest) String() string {
 func (*GetMyPointsRequest) ProtoMessage() {}
 
 func (x *GetMyPointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[6]
+	mi := &file_point_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -605,7 +761,7 @@ func (x *GetMyPointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMyPointsRequest.ProtoReflect.Descriptor instead.
 func (*GetMyPointsRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{6}
+	return file_point_proto_rawDescGZIP(), []int{9}
 }
 
 type GetMyPointsResponse struct {
@@ -619,7 +775,7 @@ type GetMyPointsResponse struct {
 
 func (x *GetMyPointsResponse) Reset() {
 	*x = GetMyPointsResponse{}
-	mi := &file_point_proto_msgTypes[7]
+	mi := &file_point_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -631,7 +787,7 @@ func (x *GetMyPointsResponse) String() string {
 func (*GetMyPointsResponse) ProtoMessage() {}
 
 func (x *GetMyPointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[7]
+	mi := &file_point_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -644,7 +800,7 @@ func (x *GetMyPointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMyPointsResponse.ProtoReflect.Descriptor instead.
 func (*GetMyPointsResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{7}
+	return file_point_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetMyPointsResponse) GetCode() uint32 {
@@ -678,7 +834,7 @@ type GetPointLogsRequest struct {
 
 func (x *GetPointLogsRequest) Reset() {
 	*x = GetPointLogsRequest{}
-	mi := &file_point_proto_msgTypes[8]
+	mi := &file_point_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -690,7 +846,7 @@ func (x *GetPointLogsRequest) String() string {
 func (*GetPointLogsRequest) ProtoMessage() {}
 
 func (x *GetPointLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[8]
+	mi := &file_point_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -703,7 +859,7 @@ func (x *GetPointLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPointLogsRequest.ProtoReflect.Descriptor instead.
 func (*GetPointLogsRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{8}
+	return file_point_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetPointLogsRequest) GetPage() uint32 {
@@ -732,7 +888,7 @@ type GetPointLogsResponse struct {
 
 func (x *GetPointLogsResponse) Reset() {
 	*x = GetPointLogsResponse{}
-	mi := &file_point_proto_msgTypes[9]
+	mi := &file_point_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -744,7 +900,7 @@ func (x *GetPointLogsResponse) String() string {
 func (*GetPointLogsResponse) ProtoMessage() {}
 
 func (x *GetPointLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[9]
+	mi := &file_point_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -757,7 +913,7 @@ func (x *GetPointLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPointLogsResponse.ProtoReflect.Descriptor instead.
 func (*GetPointLogsResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{9}
+	return file_point_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetPointLogsResponse) GetCode() uint32 {
@@ -802,7 +958,7 @@ type EarnPointsRequest struct {
 
 func (x *EarnPointsRequest) Reset() {
 	*x = EarnPointsRequest{}
-	mi := &file_point_proto_msgTypes[10]
+	mi := &file_point_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -814,7 +970,7 @@ func (x *EarnPointsRequest) String() string {
 func (*EarnPointsRequest) ProtoMessage() {}
 
 func (x *EarnPointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[10]
+	mi := &file_point_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -827,7 +983,7 @@ func (x *EarnPointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EarnPointsRequest.ProtoReflect.Descriptor instead.
 func (*EarnPointsRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{10}
+	return file_point_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *EarnPointsRequest) GetEventType() string {
@@ -877,7 +1033,7 @@ type EarnPointsResponse struct {
 
 func (x *EarnPointsResponse) Reset() {
 	*x = EarnPointsResponse{}
-	mi := &file_point_proto_msgTypes[11]
+	mi := &file_point_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -889,7 +1045,7 @@ func (x *EarnPointsResponse) String() string {
 func (*EarnPointsResponse) ProtoMessage() {}
 
 func (x *EarnPointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[11]
+	mi := &file_point_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -902,7 +1058,7 @@ func (x *EarnPointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EarnPointsResponse.ProtoReflect.Descriptor instead.
 func (*EarnPointsResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{11}
+	return file_point_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *EarnPointsResponse) GetCode() uint32 {
@@ -947,7 +1103,7 @@ type SpendPointsRequest struct {
 
 func (x *SpendPointsRequest) Reset() {
 	*x = SpendPointsRequest{}
-	mi := &file_point_proto_msgTypes[12]
+	mi := &file_point_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -959,7 +1115,7 @@ func (x *SpendPointsRequest) String() string {
 func (*SpendPointsRequest) ProtoMessage() {}
 
 func (x *SpendPointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[12]
+	mi := &file_point_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -972,7 +1128,7 @@ func (x *SpendPointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpendPointsRequest.ProtoReflect.Descriptor instead.
 func (*SpendPointsRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{12}
+	return file_point_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SpendPointsRequest) GetUserId() uint32 {
@@ -1021,7 +1177,7 @@ type SpendPointsResponse struct {
 
 func (x *SpendPointsResponse) Reset() {
 	*x = SpendPointsResponse{}
-	mi := &file_point_proto_msgTypes[13]
+	mi := &file_point_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1033,7 +1189,7 @@ func (x *SpendPointsResponse) String() string {
 func (*SpendPointsResponse) ProtoMessage() {}
 
 func (x *SpendPointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[13]
+	mi := &file_point_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1046,7 +1202,7 @@ func (x *SpendPointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpendPointsResponse.ProtoReflect.Descriptor instead.
 func (*SpendPointsResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{13}
+	return file_point_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SpendPointsResponse) GetCode() uint32 {
@@ -1081,7 +1237,7 @@ type HasPurchasedRequest struct {
 
 func (x *HasPurchasedRequest) Reset() {
 	*x = HasPurchasedRequest{}
-	mi := &file_point_proto_msgTypes[14]
+	mi := &file_point_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1093,7 +1249,7 @@ func (x *HasPurchasedRequest) String() string {
 func (*HasPurchasedRequest) ProtoMessage() {}
 
 func (x *HasPurchasedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[14]
+	mi := &file_point_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1106,7 +1262,7 @@ func (x *HasPurchasedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HasPurchasedRequest.ProtoReflect.Descriptor instead.
 func (*HasPurchasedRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{14}
+	return file_point_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *HasPurchasedRequest) GetUserId() uint32 {
@@ -1141,7 +1297,7 @@ type HasPurchasedResponse struct {
 
 func (x *HasPurchasedResponse) Reset() {
 	*x = HasPurchasedResponse{}
-	mi := &file_point_proto_msgTypes[15]
+	mi := &file_point_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1153,7 +1309,7 @@ func (x *HasPurchasedResponse) String() string {
 func (*HasPurchasedResponse) ProtoMessage() {}
 
 func (x *HasPurchasedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[15]
+	mi := &file_point_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1166,7 +1322,7 @@ func (x *HasPurchasedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HasPurchasedResponse.ProtoReflect.Descriptor instead.
 func (*HasPurchasedResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{15}
+	return file_point_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *HasPurchasedResponse) GetCode() uint32 {
@@ -1198,7 +1354,7 @@ type AdminListRulesRequest struct {
 
 func (x *AdminListRulesRequest) Reset() {
 	*x = AdminListRulesRequest{}
-	mi := &file_point_proto_msgTypes[16]
+	mi := &file_point_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1210,7 +1366,7 @@ func (x *AdminListRulesRequest) String() string {
 func (*AdminListRulesRequest) ProtoMessage() {}
 
 func (x *AdminListRulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[16]
+	mi := &file_point_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1223,7 +1379,7 @@ func (x *AdminListRulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminListRulesRequest.ProtoReflect.Descriptor instead.
 func (*AdminListRulesRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{16}
+	return file_point_proto_rawDescGZIP(), []int{19}
 }
 
 type AdminListRulesResponse struct {
@@ -1237,7 +1393,7 @@ type AdminListRulesResponse struct {
 
 func (x *AdminListRulesResponse) Reset() {
 	*x = AdminListRulesResponse{}
-	mi := &file_point_proto_msgTypes[17]
+	mi := &file_point_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1249,7 +1405,7 @@ func (x *AdminListRulesResponse) String() string {
 func (*AdminListRulesResponse) ProtoMessage() {}
 
 func (x *AdminListRulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[17]
+	mi := &file_point_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1262,7 +1418,7 @@ func (x *AdminListRulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminListRulesResponse.ProtoReflect.Descriptor instead.
 func (*AdminListRulesResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{17}
+	return file_point_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *AdminListRulesResponse) GetCode() uint32 {
@@ -1302,7 +1458,7 @@ type AdminCreateRuleRequest struct {
 
 func (x *AdminCreateRuleRequest) Reset() {
 	*x = AdminCreateRuleRequest{}
-	mi := &file_point_proto_msgTypes[18]
+	mi := &file_point_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1314,7 +1470,7 @@ func (x *AdminCreateRuleRequest) String() string {
 func (*AdminCreateRuleRequest) ProtoMessage() {}
 
 func (x *AdminCreateRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[18]
+	mi := &file_point_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1327,7 +1483,7 @@ func (x *AdminCreateRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminCreateRuleRequest.ProtoReflect.Descriptor instead.
 func (*AdminCreateRuleRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{18}
+	return file_point_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *AdminCreateRuleRequest) GetCode() string {
@@ -1397,7 +1553,7 @@ type AdminCreateRuleResponse struct {
 
 func (x *AdminCreateRuleResponse) Reset() {
 	*x = AdminCreateRuleResponse{}
-	mi := &file_point_proto_msgTypes[19]
+	mi := &file_point_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1409,7 +1565,7 @@ func (x *AdminCreateRuleResponse) String() string {
 func (*AdminCreateRuleResponse) ProtoMessage() {}
 
 func (x *AdminCreateRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[19]
+	mi := &file_point_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1422,7 +1578,7 @@ func (x *AdminCreateRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminCreateRuleResponse.ProtoReflect.Descriptor instead.
 func (*AdminCreateRuleResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{19}
+	return file_point_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *AdminCreateRuleResponse) GetCode() uint32 {
@@ -1462,7 +1618,7 @@ type AdminUpdateRuleRequest struct {
 
 func (x *AdminUpdateRuleRequest) Reset() {
 	*x = AdminUpdateRuleRequest{}
-	mi := &file_point_proto_msgTypes[20]
+	mi := &file_point_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1474,7 +1630,7 @@ func (x *AdminUpdateRuleRequest) String() string {
 func (*AdminUpdateRuleRequest) ProtoMessage() {}
 
 func (x *AdminUpdateRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[20]
+	mi := &file_point_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1487,7 +1643,7 @@ func (x *AdminUpdateRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminUpdateRuleRequest.ProtoReflect.Descriptor instead.
 func (*AdminUpdateRuleRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{20}
+	return file_point_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *AdminUpdateRuleRequest) GetRuleId() uint32 {
@@ -1557,7 +1713,7 @@ type AdminUpdateRuleResponse struct {
 
 func (x *AdminUpdateRuleResponse) Reset() {
 	*x = AdminUpdateRuleResponse{}
-	mi := &file_point_proto_msgTypes[21]
+	mi := &file_point_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1569,7 +1725,7 @@ func (x *AdminUpdateRuleResponse) String() string {
 func (*AdminUpdateRuleResponse) ProtoMessage() {}
 
 func (x *AdminUpdateRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[21]
+	mi := &file_point_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1582,7 +1738,7 @@ func (x *AdminUpdateRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminUpdateRuleResponse.ProtoReflect.Descriptor instead.
 func (*AdminUpdateRuleResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{21}
+	return file_point_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *AdminUpdateRuleResponse) GetCode() uint32 {
@@ -1615,7 +1771,7 @@ type AdminDeleteRuleRequest struct {
 
 func (x *AdminDeleteRuleRequest) Reset() {
 	*x = AdminDeleteRuleRequest{}
-	mi := &file_point_proto_msgTypes[22]
+	mi := &file_point_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1627,7 +1783,7 @@ func (x *AdminDeleteRuleRequest) String() string {
 func (*AdminDeleteRuleRequest) ProtoMessage() {}
 
 func (x *AdminDeleteRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[22]
+	mi := &file_point_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1640,7 +1796,7 @@ func (x *AdminDeleteRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminDeleteRuleRequest.ProtoReflect.Descriptor instead.
 func (*AdminDeleteRuleRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{22}
+	return file_point_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *AdminDeleteRuleRequest) GetRuleId() uint32 {
@@ -1660,7 +1816,7 @@ type AdminDeleteRuleResponse struct {
 
 func (x *AdminDeleteRuleResponse) Reset() {
 	*x = AdminDeleteRuleResponse{}
-	mi := &file_point_proto_msgTypes[23]
+	mi := &file_point_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1672,7 +1828,7 @@ func (x *AdminDeleteRuleResponse) String() string {
 func (*AdminDeleteRuleResponse) ProtoMessage() {}
 
 func (x *AdminDeleteRuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[23]
+	mi := &file_point_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1685,7 +1841,7 @@ func (x *AdminDeleteRuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminDeleteRuleResponse.ProtoReflect.Descriptor instead.
 func (*AdminDeleteRuleResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{23}
+	return file_point_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *AdminDeleteRuleResponse) GetCode() uint32 {
@@ -1714,7 +1870,7 @@ type AdminAdjustPointsRequest struct {
 
 func (x *AdminAdjustPointsRequest) Reset() {
 	*x = AdminAdjustPointsRequest{}
-	mi := &file_point_proto_msgTypes[24]
+	mi := &file_point_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1726,7 +1882,7 @@ func (x *AdminAdjustPointsRequest) String() string {
 func (*AdminAdjustPointsRequest) ProtoMessage() {}
 
 func (x *AdminAdjustPointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[24]
+	mi := &file_point_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1739,7 +1895,7 @@ func (x *AdminAdjustPointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminAdjustPointsRequest.ProtoReflect.Descriptor instead.
 func (*AdminAdjustPointsRequest) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{24}
+	return file_point_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *AdminAdjustPointsRequest) GetUserId() uint32 {
@@ -1774,7 +1930,7 @@ type AdminAdjustPointsResponse struct {
 
 func (x *AdminAdjustPointsResponse) Reset() {
 	*x = AdminAdjustPointsResponse{}
-	mi := &file_point_proto_msgTypes[25]
+	mi := &file_point_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1786,7 +1942,7 @@ func (x *AdminAdjustPointsResponse) String() string {
 func (*AdminAdjustPointsResponse) ProtoMessage() {}
 
 func (x *AdminAdjustPointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_point_proto_msgTypes[25]
+	mi := &file_point_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1799,7 +1955,7 @@ func (x *AdminAdjustPointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminAdjustPointsResponse.ProtoReflect.Descriptor instead.
 func (*AdminAdjustPointsResponse) Descriptor() ([]byte, []int) {
-	return file_point_proto_rawDescGZIP(), []int{25}
+	return file_point_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *AdminAdjustPointsResponse) GetCode() uint32 {
@@ -1877,7 +2033,16 @@ const file_point_proto_rawDesc = "" +
 	"\x0fCheckInResponse\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\rR\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12/\n" +
-	"\x06result\x18\x03 \x01(\v2\x17.point.v1.CheckInResultR\x06result\"\x14\n" +
+	"\x06result\x18\x03 \x01(\v2\x17.point.v1.CheckInResultR\x06result\"}\n" +
+	"\rCheckinStatus\x12(\n" +
+	"\x10checked_in_today\x18\x01 \x01(\bR\x0echeckedInToday\x12\x16\n" +
+	"\x06streak\x18\x02 \x01(\rR\x06streak\x12*\n" +
+	"\x11last_checkin_date\x18\x03 \x01(\tR\x0flastCheckinDate\"\x19\n" +
+	"\x17GetCheckinStatusRequest\"y\n" +
+	"\x18GetCheckinStatusResponse\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\rR\x04code\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12/\n" +
+	"\x06status\x18\x03 \x01(\v2\x17.point.v1.CheckinStatusR\x06status\"\x14\n" +
 	"\x12GetMyPointsRequest\"n\n" +
 	"\x13GetMyPointsResponse\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\rR\x04code\x12\x18\n" +
@@ -1979,11 +2144,12 @@ const file_point_proto_rawDesc = "" +
 	"\x12POINT_INSUFFICIENT\x10\xe3\xd4\x03\x12\x1e\n" +
 	"\x18POINT_ALREADY_CHECKED_IN\x10\xe4\xd4\x03\x12\x1a\n" +
 	"\x14POINT_RULE_NOT_FOUND\x10\xe5\xd4\x03\x12\x19\n" +
-	"\x13POINT_LIMIT_REACHED\x10\xe6\xd4\x032\xa4\x05\n" +
+	"\x13POINT_LIMIT_REACHED\x10\xe6\xd4\x032\xff\x05\n" +
 	"\fPointService\x12>\n" +
 	"\aCheckIn\x12\x18.point.v1.CheckInRequest\x1a\x19.point.v1.CheckInResponse\x12J\n" +
 	"\vGetMyPoints\x12\x1c.point.v1.GetMyPointsRequest\x1a\x1d.point.v1.GetMyPointsResponse\x12M\n" +
-	"\fGetPointLogs\x12\x1d.point.v1.GetPointLogsRequest\x1a\x1e.point.v1.GetPointLogsResponse\x12S\n" +
+	"\fGetPointLogs\x12\x1d.point.v1.GetPointLogsRequest\x1a\x1e.point.v1.GetPointLogsResponse\x12Y\n" +
+	"\x10GetCheckinStatus\x12!.point.v1.GetCheckinStatusRequest\x1a\".point.v1.GetCheckinStatusResponse\x12S\n" +
 	"\x0eAdminListRules\x12\x1f.point.v1.AdminListRulesRequest\x1a .point.v1.AdminListRulesResponse\x12V\n" +
 	"\x0fAdminCreateRule\x12 .point.v1.AdminCreateRuleRequest\x1a!.point.v1.AdminCreateRuleResponse\x12V\n" +
 	"\x0fAdminUpdateRule\x12 .point.v1.AdminUpdateRuleRequest\x1a!.point.v1.AdminUpdateRuleResponse\x12V\n" +
@@ -2003,7 +2169,7 @@ func file_point_proto_rawDescGZIP() []byte {
 }
 
 var file_point_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_point_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_point_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_point_proto_goTypes = []any{
 	(PointErrorCode)(0),               // 0: point.v1.PointErrorCode
 	(*UserPoint)(nil),                 // 1: point.v1.UserPoint
@@ -2012,55 +2178,61 @@ var file_point_proto_goTypes = []any{
 	(*CheckInResult)(nil),             // 4: point.v1.CheckInResult
 	(*CheckInRequest)(nil),            // 5: point.v1.CheckInRequest
 	(*CheckInResponse)(nil),           // 6: point.v1.CheckInResponse
-	(*GetMyPointsRequest)(nil),        // 7: point.v1.GetMyPointsRequest
-	(*GetMyPointsResponse)(nil),       // 8: point.v1.GetMyPointsResponse
-	(*GetPointLogsRequest)(nil),       // 9: point.v1.GetPointLogsRequest
-	(*GetPointLogsResponse)(nil),      // 10: point.v1.GetPointLogsResponse
-	(*EarnPointsRequest)(nil),         // 11: point.v1.EarnPointsRequest
-	(*EarnPointsResponse)(nil),        // 12: point.v1.EarnPointsResponse
-	(*SpendPointsRequest)(nil),        // 13: point.v1.SpendPointsRequest
-	(*SpendPointsResponse)(nil),       // 14: point.v1.SpendPointsResponse
-	(*HasPurchasedRequest)(nil),       // 15: point.v1.HasPurchasedRequest
-	(*HasPurchasedResponse)(nil),      // 16: point.v1.HasPurchasedResponse
-	(*AdminListRulesRequest)(nil),     // 17: point.v1.AdminListRulesRequest
-	(*AdminListRulesResponse)(nil),    // 18: point.v1.AdminListRulesResponse
-	(*AdminCreateRuleRequest)(nil),    // 19: point.v1.AdminCreateRuleRequest
-	(*AdminCreateRuleResponse)(nil),   // 20: point.v1.AdminCreateRuleResponse
-	(*AdminUpdateRuleRequest)(nil),    // 21: point.v1.AdminUpdateRuleRequest
-	(*AdminUpdateRuleResponse)(nil),   // 22: point.v1.AdminUpdateRuleResponse
-	(*AdminDeleteRuleRequest)(nil),    // 23: point.v1.AdminDeleteRuleRequest
-	(*AdminDeleteRuleResponse)(nil),   // 24: point.v1.AdminDeleteRuleResponse
-	(*AdminAdjustPointsRequest)(nil),  // 25: point.v1.AdminAdjustPointsRequest
-	(*AdminAdjustPointsResponse)(nil), // 26: point.v1.AdminAdjustPointsResponse
+	(*CheckinStatus)(nil),             // 7: point.v1.CheckinStatus
+	(*GetCheckinStatusRequest)(nil),   // 8: point.v1.GetCheckinStatusRequest
+	(*GetCheckinStatusResponse)(nil),  // 9: point.v1.GetCheckinStatusResponse
+	(*GetMyPointsRequest)(nil),        // 10: point.v1.GetMyPointsRequest
+	(*GetMyPointsResponse)(nil),       // 11: point.v1.GetMyPointsResponse
+	(*GetPointLogsRequest)(nil),       // 12: point.v1.GetPointLogsRequest
+	(*GetPointLogsResponse)(nil),      // 13: point.v1.GetPointLogsResponse
+	(*EarnPointsRequest)(nil),         // 14: point.v1.EarnPointsRequest
+	(*EarnPointsResponse)(nil),        // 15: point.v1.EarnPointsResponse
+	(*SpendPointsRequest)(nil),        // 16: point.v1.SpendPointsRequest
+	(*SpendPointsResponse)(nil),       // 17: point.v1.SpendPointsResponse
+	(*HasPurchasedRequest)(nil),       // 18: point.v1.HasPurchasedRequest
+	(*HasPurchasedResponse)(nil),      // 19: point.v1.HasPurchasedResponse
+	(*AdminListRulesRequest)(nil),     // 20: point.v1.AdminListRulesRequest
+	(*AdminListRulesResponse)(nil),    // 21: point.v1.AdminListRulesResponse
+	(*AdminCreateRuleRequest)(nil),    // 22: point.v1.AdminCreateRuleRequest
+	(*AdminCreateRuleResponse)(nil),   // 23: point.v1.AdminCreateRuleResponse
+	(*AdminUpdateRuleRequest)(nil),    // 24: point.v1.AdminUpdateRuleRequest
+	(*AdminUpdateRuleResponse)(nil),   // 25: point.v1.AdminUpdateRuleResponse
+	(*AdminDeleteRuleRequest)(nil),    // 26: point.v1.AdminDeleteRuleRequest
+	(*AdminDeleteRuleResponse)(nil),   // 27: point.v1.AdminDeleteRuleResponse
+	(*AdminAdjustPointsRequest)(nil),  // 28: point.v1.AdminAdjustPointsRequest
+	(*AdminAdjustPointsResponse)(nil), // 29: point.v1.AdminAdjustPointsResponse
 }
 var file_point_proto_depIdxs = []int32{
 	4,  // 0: point.v1.CheckInResponse.result:type_name -> point.v1.CheckInResult
-	1,  // 1: point.v1.GetMyPointsResponse.point:type_name -> point.v1.UserPoint
-	2,  // 2: point.v1.GetPointLogsResponse.logs:type_name -> point.v1.PointLog
-	3,  // 3: point.v1.AdminListRulesResponse.rules:type_name -> point.v1.PointRule
-	3,  // 4: point.v1.AdminCreateRuleResponse.rule:type_name -> point.v1.PointRule
-	3,  // 5: point.v1.AdminUpdateRuleResponse.rule:type_name -> point.v1.PointRule
-	5,  // 6: point.v1.PointService.CheckIn:input_type -> point.v1.CheckInRequest
-	7,  // 7: point.v1.PointService.GetMyPoints:input_type -> point.v1.GetMyPointsRequest
-	9,  // 8: point.v1.PointService.GetPointLogs:input_type -> point.v1.GetPointLogsRequest
-	17, // 9: point.v1.PointService.AdminListRules:input_type -> point.v1.AdminListRulesRequest
-	19, // 10: point.v1.PointService.AdminCreateRule:input_type -> point.v1.AdminCreateRuleRequest
-	21, // 11: point.v1.PointService.AdminUpdateRule:input_type -> point.v1.AdminUpdateRuleRequest
-	23, // 12: point.v1.PointService.AdminDeleteRule:input_type -> point.v1.AdminDeleteRuleRequest
-	25, // 13: point.v1.PointService.AdminAdjustPoints:input_type -> point.v1.AdminAdjustPointsRequest
-	6,  // 14: point.v1.PointService.CheckIn:output_type -> point.v1.CheckInResponse
-	8,  // 15: point.v1.PointService.GetMyPoints:output_type -> point.v1.GetMyPointsResponse
-	10, // 16: point.v1.PointService.GetPointLogs:output_type -> point.v1.GetPointLogsResponse
-	18, // 17: point.v1.PointService.AdminListRules:output_type -> point.v1.AdminListRulesResponse
-	20, // 18: point.v1.PointService.AdminCreateRule:output_type -> point.v1.AdminCreateRuleResponse
-	22, // 19: point.v1.PointService.AdminUpdateRule:output_type -> point.v1.AdminUpdateRuleResponse
-	24, // 20: point.v1.PointService.AdminDeleteRule:output_type -> point.v1.AdminDeleteRuleResponse
-	26, // 21: point.v1.PointService.AdminAdjustPoints:output_type -> point.v1.AdminAdjustPointsResponse
-	14, // [14:22] is the sub-list for method output_type
-	6,  // [6:14] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	7,  // 1: point.v1.GetCheckinStatusResponse.status:type_name -> point.v1.CheckinStatus
+	1,  // 2: point.v1.GetMyPointsResponse.point:type_name -> point.v1.UserPoint
+	2,  // 3: point.v1.GetPointLogsResponse.logs:type_name -> point.v1.PointLog
+	3,  // 4: point.v1.AdminListRulesResponse.rules:type_name -> point.v1.PointRule
+	3,  // 5: point.v1.AdminCreateRuleResponse.rule:type_name -> point.v1.PointRule
+	3,  // 6: point.v1.AdminUpdateRuleResponse.rule:type_name -> point.v1.PointRule
+	5,  // 7: point.v1.PointService.CheckIn:input_type -> point.v1.CheckInRequest
+	10, // 8: point.v1.PointService.GetMyPoints:input_type -> point.v1.GetMyPointsRequest
+	12, // 9: point.v1.PointService.GetPointLogs:input_type -> point.v1.GetPointLogsRequest
+	8,  // 10: point.v1.PointService.GetCheckinStatus:input_type -> point.v1.GetCheckinStatusRequest
+	20, // 11: point.v1.PointService.AdminListRules:input_type -> point.v1.AdminListRulesRequest
+	22, // 12: point.v1.PointService.AdminCreateRule:input_type -> point.v1.AdminCreateRuleRequest
+	24, // 13: point.v1.PointService.AdminUpdateRule:input_type -> point.v1.AdminUpdateRuleRequest
+	26, // 14: point.v1.PointService.AdminDeleteRule:input_type -> point.v1.AdminDeleteRuleRequest
+	28, // 15: point.v1.PointService.AdminAdjustPoints:input_type -> point.v1.AdminAdjustPointsRequest
+	6,  // 16: point.v1.PointService.CheckIn:output_type -> point.v1.CheckInResponse
+	11, // 17: point.v1.PointService.GetMyPoints:output_type -> point.v1.GetMyPointsResponse
+	13, // 18: point.v1.PointService.GetPointLogs:output_type -> point.v1.GetPointLogsResponse
+	9,  // 19: point.v1.PointService.GetCheckinStatus:output_type -> point.v1.GetCheckinStatusResponse
+	21, // 20: point.v1.PointService.AdminListRules:output_type -> point.v1.AdminListRulesResponse
+	23, // 21: point.v1.PointService.AdminCreateRule:output_type -> point.v1.AdminCreateRuleResponse
+	25, // 22: point.v1.PointService.AdminUpdateRule:output_type -> point.v1.AdminUpdateRuleResponse
+	27, // 23: point.v1.PointService.AdminDeleteRule:output_type -> point.v1.AdminDeleteRuleResponse
+	29, // 24: point.v1.PointService.AdminAdjustPoints:output_type -> point.v1.AdminAdjustPointsResponse
+	16, // [16:25] is the sub-list for method output_type
+	7,  // [7:16] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_point_proto_init() }
@@ -2074,7 +2246,7 @@ func file_point_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_point_proto_rawDesc), len(file_point_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   26,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

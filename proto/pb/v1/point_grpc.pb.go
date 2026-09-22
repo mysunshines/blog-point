@@ -8,7 +8,6 @@ package v1
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -23,6 +22,7 @@ const (
 	PointService_CheckIn_FullMethodName           = "/point.v1.PointService/CheckIn"
 	PointService_GetMyPoints_FullMethodName       = "/point.v1.PointService/GetMyPoints"
 	PointService_GetPointLogs_FullMethodName      = "/point.v1.PointService/GetPointLogs"
+	PointService_GetCheckinStatus_FullMethodName  = "/point.v1.PointService/GetCheckinStatus"
 	PointService_AdminListRules_FullMethodName    = "/point.v1.PointService/AdminListRules"
 	PointService_AdminCreateRule_FullMethodName   = "/point.v1.PointService/AdminCreateRule"
 	PointService_AdminUpdateRule_FullMethodName   = "/point.v1.PointService/AdminUpdateRule"
@@ -38,6 +38,7 @@ type PointServiceClient interface {
 	CheckIn(ctx context.Context, in *CheckInRequest, opts ...grpc.CallOption) (*CheckInResponse, error)
 	GetMyPoints(ctx context.Context, in *GetMyPointsRequest, opts ...grpc.CallOption) (*GetMyPointsResponse, error)
 	GetPointLogs(ctx context.Context, in *GetPointLogsRequest, opts ...grpc.CallOption) (*GetPointLogsResponse, error)
+	GetCheckinStatus(ctx context.Context, in *GetCheckinStatusRequest, opts ...grpc.CallOption) (*GetCheckinStatusResponse, error)
 	// --------------------------- 后台管理（管理员，RequireGRPCAdmin） ---------------------------
 	AdminListRules(ctx context.Context, in *AdminListRulesRequest, opts ...grpc.CallOption) (*AdminListRulesResponse, error)
 	AdminCreateRule(ctx context.Context, in *AdminCreateRuleRequest, opts ...grpc.CallOption) (*AdminCreateRuleResponse, error)
@@ -78,6 +79,16 @@ func (c *pointServiceClient) GetPointLogs(ctx context.Context, in *GetPointLogsR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPointLogsResponse)
 	err := c.cc.Invoke(ctx, PointService_GetPointLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pointServiceClient) GetCheckinStatus(ctx context.Context, in *GetCheckinStatusRequest, opts ...grpc.CallOption) (*GetCheckinStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCheckinStatusResponse)
+	err := c.cc.Invoke(ctx, PointService_GetCheckinStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +153,7 @@ type PointServiceServer interface {
 	CheckIn(context.Context, *CheckInRequest) (*CheckInResponse, error)
 	GetMyPoints(context.Context, *GetMyPointsRequest) (*GetMyPointsResponse, error)
 	GetPointLogs(context.Context, *GetPointLogsRequest) (*GetPointLogsResponse, error)
+	GetCheckinStatus(context.Context, *GetCheckinStatusRequest) (*GetCheckinStatusResponse, error)
 	// --------------------------- 后台管理（管理员，RequireGRPCAdmin） ---------------------------
 	AdminListRules(context.Context, *AdminListRulesRequest) (*AdminListRulesResponse, error)
 	AdminCreateRule(context.Context, *AdminCreateRuleRequest) (*AdminCreateRuleResponse, error)
@@ -166,6 +178,9 @@ func (UnimplementedPointServiceServer) GetMyPoints(context.Context, *GetMyPoints
 }
 func (UnimplementedPointServiceServer) GetPointLogs(context.Context, *GetPointLogsRequest) (*GetPointLogsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPointLogs not implemented")
+}
+func (UnimplementedPointServiceServer) GetCheckinStatus(context.Context, *GetCheckinStatusRequest) (*GetCheckinStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCheckinStatus not implemented")
 }
 func (UnimplementedPointServiceServer) AdminListRules(context.Context, *AdminListRulesRequest) (*AdminListRulesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AdminListRules not implemented")
@@ -253,6 +268,24 @@ func _PointService_GetPointLogs_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PointServiceServer).GetPointLogs(ctx, req.(*GetPointLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PointService_GetCheckinStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCheckinStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PointServiceServer).GetCheckinStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PointService_GetCheckinStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PointServiceServer).GetCheckinStatus(ctx, req.(*GetCheckinStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -365,6 +398,10 @@ var PointService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPointLogs",
 			Handler:    _PointService_GetPointLogs_Handler,
+		},
+		{
+			MethodName: "GetCheckinStatus",
+			Handler:    _PointService_GetCheckinStatus_Handler,
 		},
 		{
 			MethodName: "AdminListRules",

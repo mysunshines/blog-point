@@ -35,7 +35,10 @@ type PointService interface {
 	CheckIn(ctx context.Context, userID uint) (*CheckInResult, error)
 	GetMyPoints(ctx context.Context, userID uint) (*model.UserPoint, error)
 	GetPointLogs(ctx context.Context, userID uint, page, size int) ([]*model.PointLog, int64, error)
+	GetCheckinStatus(ctx context.Context, userID uint) (*CheckinStatus, error)
 	HasPurchased(ctx context.Context, userID uint, itemType string, itemID uint) (bool, error)
+	// RebuildUserPointsBoard 全量重建用户积分榜（启动时调用：Redis 重启/数据丢失后自愈）
+	RebuildUserPointsBoard(ctx context.Context) (int, error)
 
 	// 事件加分（规则引擎入口）与消费
 	EarnPoints(ctx context.Context, req *model.EarnPointsRequest) (*model.EarnResult, error)
@@ -103,6 +106,47 @@ func (s *pointService) CheckIn(ctx context.Context, userID uint) (*CheckInResult
 	}
 
 	return &CheckInResult{Streak: streak, Points: res.Points, Rules: res.RuleCodes}, nil
+}
+
+// CheckinStatus 签到状态（只读）
+type CheckinStatus struct {
+	CheckedInToday  bool
+	Streak          int
+	LastCheckinDate string
+}
+
+// GetCheckinStatus 查询用户签到状态：今日是否已签到 + 当前连续天数。
+// 连续天数语义：今天已签到取当日记录；今天未签到但昨天签到了则保留（还没断），
+// 否则记为 0（断签）。前端据此渲染「已签到 / 可签到」。
+func (s *pointService) GetCheckinStatus(ctx context.Context, userID uint) (*CheckinStatus, error) {
+	if userID == 0 {
+		return nil, ErrBadRequest
+	}
+	now := time.Now()
+	today := now.Format("2006-01-02")
+
+	todayRec, err := s.repo.GetCheckinByDate(ctx, userID, today)
+	checked := err == nil && todayRec != nil
+
+	streak := 0
+	lastDate := ""
+	if last, err := s.repo.LatestCheckin(ctx, userID); err == nil && last != nil {
+		lastDate = last.CheckinDate
+		if checked {
+			streak = todayRec.Streak
+		} else {
+			yesterday := now.AddDate(0, 0, -1).Format("2006-01-02")
+			if last.CheckinDate == yesterday {
+				streak = last.Streak
+			}
+		}
+	}
+
+	return &CheckinStatus{
+		CheckedInToday:  checked,
+		Streak:          streak,
+		LastCheckinDate: lastDate,
+	}, nil
 }
 
 // ============================================================================
@@ -488,4 +532,25 @@ func (s *pointService) syncBoard(ctx context.Context, userID uint, balance int64
 	if err := client.SyncUserPoints(ctx, userID, balance); err != nil {
 		log.Printf("[ranking] sync user points failed user=%d: %v", userID, err)
 	}
+}
+
+// RebuildUserPointsBoard 全量重建用户积分榜：把 user_points 表中所有账户的余额
+// 以绝对值覆盖写入 ranking-service（ZADD SET）。
+// 背景：积分只在「发生变动」时才同步到榜单，若 Redis 重启/数据丢失，榜单会为空且
+// 无法自愈（只有下次积分变动的那批用户才会回到榜上）。启动时按 DB 余额重建即可修复。
+// best-effort：单条失败只告警并继续，返回成功写入的用户数。
+func (s *pointService) RebuildUserPointsBoard(ctx context.Context) (int, error) {
+	points, err := s.repo.ListAllPoints(ctx)
+	if err != nil {
+		return 0, err
+	}
+	ok := 0
+	for _, p := range points {
+		if err := client.SyncUserPoints(ctx, p.UserID, p.Balance); err != nil {
+			log.Printf("[ranking] rebuild sync user points failed user=%d: %v", p.UserID, err)
+			continue
+		}
+		ok++
+	}
+	return ok, nil
 }
