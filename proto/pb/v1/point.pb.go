@@ -946,14 +946,15 @@ func (x *GetPointLogsResponse) GetTotal() uint32 {
 
 // 事件加分（内部 / 业务服务调用）
 type EarnPointsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`       // checkin / publish_article / weekly_rank / article_purchased ...
-	UserId        uint32                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`               // 目标用户；为 0 时取当前登录用户
-	Context       string                 `protobuf:"bytes,3,opt,name=context,proto3" json:"context,omitempty"`                            // JSON 上下文，供 condition 匹配（如 {"streak":7,"rank":3}）
-	RelatedType   string                 `protobuf:"bytes,4,opt,name=related_type,json=relatedType,proto3" json:"related_type,omitempty"` // article / background ...
-	RelatedId     uint32                 `protobuf:"varint,5,opt,name=related_id,json=relatedId,proto3" json:"related_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	EventType      string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`       // checkin / publish_article / weekly_rank / article_purchased ...
+	UserId         uint32                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`               // 目标用户；为 0 时取当前登录用户
+	Context        string                 `protobuf:"bytes,3,opt,name=context,proto3" json:"context,omitempty"`                            // JSON 上下文，供 condition 匹配（如 {"streak":7,"rank":3}）
+	RelatedType    string                 `protobuf:"bytes,4,opt,name=related_type,json=relatedType,proto3" json:"related_type,omitempty"` // article / background ...
+	RelatedId      uint32                 `protobuf:"varint,5,opt,name=related_id,json=relatedId,proto3" json:"related_id,omitempty"`
+	IdempotencyKey string                 `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"` // 可选：幂等键；为空时由服务端按 user+event+related 派生
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *EarnPointsRequest) Reset() {
@@ -1019,6 +1020,13 @@ func (x *EarnPointsRequest) GetRelatedId() uint32 {
 		return x.RelatedId
 	}
 	return 0
+}
+
+func (x *EarnPointsRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
 }
 
 type EarnPointsResponse struct {
@@ -1091,14 +1099,15 @@ func (x *EarnPointsResponse) GetRules() []string {
 
 // 消费积分（购买付费文章 / 背景等）
 type SpendPointsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        uint32                 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`      // 为 0 时取当前登录用户
-	Amount        int64                  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`                    // 消费积分（正数）
-	ItemType      string                 `protobuf:"bytes,3,opt,name=item_type,json=itemType,proto3" json:"item_type,omitempty"` // article / background
-	ItemId        uint32                 `protobuf:"varint,4,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
-	Remark        string                 `protobuf:"bytes,5,opt,name=remark,proto3" json:"remark,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserId         uint32                 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`      // 为 0 时取当前登录用户
+	Amount         int64                  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`                    // 消费积分（正数）
+	ItemType       string                 `protobuf:"bytes,3,opt,name=item_type,json=itemType,proto3" json:"item_type,omitempty"` // article / background
+	ItemId         uint32                 `protobuf:"varint,4,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	Remark         string                 `protobuf:"bytes,5,opt,name=remark,proto3" json:"remark,omitempty"`
+	IdempotencyKey string                 `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"` // 可选：幂等键；为空时由服务端按 user+item 派生
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SpendPointsRequest) Reset() {
@@ -1162,6 +1171,13 @@ func (x *SpendPointsRequest) GetItemId() uint32 {
 func (x *SpendPointsRequest) GetRemark() string {
 	if x != nil {
 		return x.Remark
+	}
+	return ""
+}
+
+func (x *SpendPointsRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
 	}
 	return ""
 }
@@ -2055,7 +2071,7 @@ const file_point_proto_rawDesc = "" +
 	"\x04code\x18\x01 \x01(\rR\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12&\n" +
 	"\x04logs\x18\x03 \x03(\v2\x12.point.v1.PointLogR\x04logs\x12\x14\n" +
-	"\x05total\x18\x04 \x01(\rR\x05total\"\xa7\x01\n" +
+	"\x05total\x18\x04 \x01(\rR\x05total\"\xd0\x01\n" +
 	"\x11EarnPointsRequest\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\tR\teventType\x12\x17\n" +
@@ -2063,18 +2079,20 @@ const file_point_proto_rawDesc = "" +
 	"\acontext\x18\x03 \x01(\tR\acontext\x12!\n" +
 	"\frelated_type\x18\x04 \x01(\tR\vrelatedType\x12\x1d\n" +
 	"\n" +
-	"related_id\x18\x05 \x01(\rR\trelatedId\"p\n" +
+	"related_id\x18\x05 \x01(\rR\trelatedId\x12'\n" +
+	"\x0fidempotency_key\x18\x06 \x01(\tR\x0eidempotencyKey\"p\n" +
 	"\x12EarnPointsResponse\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\rR\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x16\n" +
 	"\x06points\x18\x03 \x01(\x03R\x06points\x12\x14\n" +
-	"\x05rules\x18\x04 \x03(\tR\x05rules\"\x93\x01\n" +
+	"\x05rules\x18\x04 \x03(\tR\x05rules\"\xbc\x01\n" +
 	"\x12SpendPointsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\rR\x06userId\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x03R\x06amount\x12\x1b\n" +
 	"\titem_type\x18\x03 \x01(\tR\bitemType\x12\x17\n" +
 	"\aitem_id\x18\x04 \x01(\rR\x06itemId\x12\x16\n" +
-	"\x06remark\x18\x05 \x01(\tR\x06remark\"]\n" +
+	"\x06remark\x18\x05 \x01(\tR\x06remark\x12'\n" +
+	"\x0fidempotency_key\x18\x06 \x01(\tR\x0eidempotencyKey\"]\n" +
 	"\x13SpendPointsResponse\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\rR\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x18\n" +

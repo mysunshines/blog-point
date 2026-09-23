@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -11,7 +12,9 @@ import (
 	"github.com/mysunshines/blog-point/internal/client"
 	"github.com/mysunshines/blog-point/internal/model"
 	"github.com/mysunshines/blog-point/internal/repository"
+	"github.com/mysunshines/gocommon/constants"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // 领域错误（handler 负责映射为 proto 错误码）
@@ -50,6 +53,10 @@ type PointService interface {
 	AdminUpdateRule(ctx context.Context, rule *model.PointRule) error
 	AdminDeleteRule(ctx context.Context, id uint) error
 	AdminAdjustPoints(ctx context.Context, userID uint, amount int64, remark string) (int64, error)
+
+	// 积分过期与存量迁移（启动 / 每日定时）
+	ExpireGrants(ctx context.Context) (int64, error)        // 清零过期批次并扣减可用余额
+	EnsureLegacyGrants(ctx context.Context) (int64, error)  // 为存量积分生成 legacy 批次
 }
 
 type pointService struct {
@@ -71,7 +78,7 @@ func (s *pointService) CheckIn(ctx context.Context, userID uint) (*CheckInResult
 		return nil, ErrBadRequest
 	}
 	now := time.Now()
-	today := now.Format("2006-01-02")
+	today := now.Format(constants.DateFormat)
 
 	// 一天只能签到一次（唯一索引兜底，此处提前返回友好错误）
 	if _, err := s.repo.GetCheckinByDate(ctx, userID, today); err == nil {
@@ -81,7 +88,7 @@ func (s *pointService) CheckIn(ctx context.Context, userID uint) (*CheckInResult
 	// 连续天数：昨日有签到则 +1，否则重新从 1 开始
 	streak := 1
 	if last, err := s.repo.LatestCheckin(ctx, userID); err == nil && last != nil {
-		yesterday := now.AddDate(0, 0, -1).Format("2006-01-02")
+		yesterday := now.AddDate(0, 0, -1).Format(constants.DateFormat)
 		if last.CheckinDate == yesterday {
 			streak = last.Streak + 1
 		}
@@ -123,7 +130,7 @@ func (s *pointService) GetCheckinStatus(ctx context.Context, userID uint) (*Chec
 		return nil, ErrBadRequest
 	}
 	now := time.Now()
-	today := now.Format("2006-01-02")
+	today := now.Format(constants.DateFormat)
 
 	todayRec, err := s.repo.GetCheckinByDate(ctx, userID, today)
 	checked := err == nil && todayRec != nil
@@ -135,7 +142,7 @@ func (s *pointService) GetCheckinStatus(ctx context.Context, userID uint) (*Chec
 		if checked {
 			streak = todayRec.Streak
 		} else {
-			yesterday := now.AddDate(0, 0, -1).Format("2006-01-02")
+			yesterday := now.AddDate(0, 0, -1).Format(constants.DateFormat)
 			if last.CheckinDate == yesterday {
 				streak = last.Streak
 			}
@@ -155,6 +162,8 @@ func (s *pointService) GetCheckinStatus(ctx context.Context, userID uint) (*Chec
 
 // EarnPoints 事件加分：按事件取出启用规则，逐条匹配条件与限次，命中即计分。
 // 分值完全由 point_rules 数据决定（管理员可配），代码不感知具体业务。
+// 幂等：调用方事务内对幂等行加行锁（FOR UPDATE）串行化并发重放，已处理（done）的请求
+// 直接返回首次结果；加分在单事务内完成（余额 + 流水 + 积分批次），保证不重复发放。
 func (s *pointService) EarnPoints(ctx context.Context, req *model.EarnPointsRequest) (*model.EarnResult, error) {
 	if req == nil || req.UserID == 0 || req.EventType == "" {
 		return nil, ErrBadRequest
@@ -165,16 +174,15 @@ func (s *pointService) EarnPoints(ctx context.Context, req *model.EarnPointsRequ
 		return nil, err
 	}
 
-	result := &model.EarnResult{}
+	// 先过滤命中规则（只读，不改库）
+	var hits []*model.PointRule
 	for _, rule := range rules {
 		if rule.Points <= 0 {
 			continue
 		}
-		// 条件匹配（JSON condition vs 事件上下文）
 		if !matchCondition(rule.Condition, req.Context) {
 			continue
 		}
-		// 限次防刷
 		ok, err := s.checkLimit(ctx, req.UserID, rule)
 		if err != nil {
 			return nil, err
@@ -182,16 +190,53 @@ func (s *pointService) EarnPoints(ctx context.Context, req *model.EarnPointsRequ
 		if !ok {
 			continue
 		}
-		if _, err := s.applyDelta(ctx, req.UserID, rule.Points,
-			model.PointLogTypeEarn, rule.Code, req.RelatedType, req.RelatedID, rule.Name); err != nil {
-			return nil, err
-		}
-		result.Points += rule.Points
-		result.RuleCodes = append(result.RuleCodes, rule.Code)
+		hits = append(hits, rule)
 	}
-	// 产生加分后同步积分榜（best-effort）
-	if result.Points > 0 {
-		if p, err := s.repo.GetPoint(ctx, req.UserID); err == nil && p != nil {
+
+	key := s.earnIdemKey(req)
+	// 确保账户存在（惰性开户；重放时无害）
+	if _, err := s.repo.EnsurePoint(ctx, req.UserID); err != nil {
+		return nil, err
+	}
+
+	result := &model.EarnResult{}
+	replayed := false
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 幂等门：插入或取已有幂等行并加行锁，串行化并发重放，杜绝重复加分
+		if err := s.repo.UpsertIdempotencyTx(tx, key, req.UserID, model.IdemKindEarn); err != nil {
+			return err
+		}
+		row, err := s.repo.LockIdempotencyTx(tx, key)
+		if err != nil {
+			return err
+		}
+		if row.Status == model.IdemStatusDone {
+			// 重放：直接解码首次结果，不做任何加分
+			if r, ok := decodeIdemEarn(row.Result); ok {
+				*result = *r
+			}
+			replayed = true
+			return nil
+		}
+		// 首次处理：单事务内完成所有加分（余额 + 流水 + 批次）
+		now := time.Now()
+		for _, rule := range hits {
+			if _, err := s.applyEarnTx(ctx, tx, req.UserID, rule.Points,
+				model.PointLogTypeEarn, rule.Code, req.RelatedType, req.RelatedID, rule.Name, now); err != nil {
+				return err
+			}
+			result.Points += rule.Points
+			result.RuleCodes = append(result.RuleCodes, rule.Code)
+		}
+		return s.repo.MarkIdempotencyDoneTx(tx, key, s.encodeIdemEarn(result))
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// 产生加分后同步积分榜（best-effort，重放不重复同步）
+	if !replayed && result.Points > 0 {
+		if p, e := s.repo.GetPoint(ctx, req.UserID); e == nil && p != nil {
 			s.syncBoard(ctx, req.UserID, p.Balance)
 		}
 	}
@@ -323,7 +368,8 @@ func toFloat64(v interface{}) float64 {
 // 账户与流水
 // ============================================================================
 
-// applyDelta 原子变更余额并写流水（正=获得，负=消费）
+// applyDelta 原子变更余额并写流水（正=获得，负=消费）。正值时同时建立积分批次
+// （1 年过期），供 FIFO 消费与过期清理使用。仅用于管理员单笔调整等单操作场景。
 func (s *pointService) applyDelta(ctx context.Context, userID uint, amount int64,
 	logType, ruleCode, relatedType string, relatedID uint, remark string) (int64, error) {
 
@@ -341,13 +387,8 @@ func (s *pointService) applyDelta(ctx context.Context, userID uint, amount int64
 		if _, err := s.repo.EnsurePoint(ctx, userID); err != nil {
 			return err
 		}
-		updates := map[string]interface{}{"balance": gorm.Expr("balance + ?", amount)}
-		if amount > 0 {
-			updates["total_earned"] = gorm.Expr("total_earned + ?", amount)
-		} else {
-			updates["total_spent"] = gorm.Expr("total_spent + ?", -amount)
-		}
-		if err := tx.Model(&model.UserPoint{}).Where("user_id = ?", userID).Updates(updates).Error; err != nil {
+		now := time.Now()
+		if _, err := s.applyEarnTx(ctx, tx, userID, amount, logType, ruleCode, relatedType, relatedID, remark, now); err != nil {
 			return err
 		}
 		var after model.UserPoint
@@ -355,18 +396,102 @@ func (s *pointService) applyDelta(ctx context.Context, userID uint, amount int64
 			return err
 		}
 		balance = after.Balance
-		return s.repo.CreateLog(ctx, tx, &model.PointLog{
-			UserID:       userID,
-			Amount:       amount,
-			BalanceAfter: balance,
-			Type:         logType,
-			RuleCode:     ruleCode,
-			RelatedType:  relatedType,
-			RelatedID:    relatedID,
-			Remark:       remark,
-		})
+		return nil
 	})
 	return balance, err
+}
+
+// applyEarnTx 在事务内「更新余额 + 写流水 + 建积分批次」（正值获得）。
+func (s *pointService) applyEarnTx(ctx context.Context, tx *gorm.DB, userID uint, amount int64,
+	logType, ruleCode, relatedType string, relatedID uint, remark string, now time.Time) (int64, error) {
+	if amount == 0 {
+		return 0, nil
+	}
+	updates := map[string]interface{}{"balance": gorm.Expr("balance + ?", amount)}
+	if amount > 0 {
+		updates["total_earned"] = gorm.Expr("total_earned + ?", amount)
+	} else {
+		updates["total_spent"] = gorm.Expr("total_spent + ?", -amount)
+	}
+	if err := tx.Model(&model.UserPoint{}).Where("user_id = ?", userID).Updates(updates).Error; err != nil {
+		return 0, err
+	}
+	var after model.UserPoint
+	if err := tx.Where("user_id = ?", userID).First(&after).Error; err != nil {
+		return 0, err
+	}
+	if err := s.repo.CreateLog(ctx, tx, &model.PointLog{
+		UserID:       userID,
+		Amount:       amount,
+		BalanceAfter: after.Balance,
+		Type:         logType,
+		RuleCode:     ruleCode,
+		RelatedType:  relatedType,
+		RelatedID:    relatedID,
+		Remark:       remark,
+	}); err != nil {
+		return 0, err
+	}
+	// 仅正获得建立批次（负调整走 consumeGrants，不建批次）
+	if amount > 0 {
+		if err := s.repo.CreateGrant(ctx, tx, &model.PointGrant{
+			UserID:    userID,
+			Amount:    amount,
+			Remaining: amount,
+			EarnedAt:  now,
+			ExpiresAt: model.GrantExpiry(now),
+		}); err != nil {
+			return 0, err
+		}
+	}
+	return after.Balance, nil
+}
+
+// consumeGrants 在事务内按 FIFO（earned_at ASC）从最早批次扣减积分（仅未过期批次），
+// 并同步扣减账户余额与累计消费。余额不足（含积分已过期）返回 ErrInsufficientPoints。
+// 调用方需保证账户行 / 批次行加锁，防止并发超卖。
+func (s *pointService) consumeGrants(ctx context.Context, tx *gorm.DB, userID uint, amount int64, now time.Time) (int64, error) {
+	var up model.UserPoint
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", userID).First(&up).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, ErrInsufficientPoints
+		}
+		return 0, err
+	}
+	grants, err := s.repo.ListUnexpiredGrants(ctx, tx, userID, now, true)
+	if err != nil {
+		return 0, err
+	}
+	var available int64
+	for _, g := range grants {
+		available += g.Remaining
+	}
+	if available < amount {
+		return 0, ErrInsufficientPoints
+	}
+	left := amount
+	for _, g := range grants {
+		if left == 0 {
+			break
+		}
+		take := g.Remaining
+		if take > left {
+			take = left
+		}
+		g.Remaining -= take
+		left -= take
+		if err := s.repo.UpdateGrantRemaining(ctx, tx, g.ID, g.Remaining); err != nil {
+			return 0, err
+		}
+	}
+	balance := up.Balance - amount
+	if err := tx.Model(&model.UserPoint{}).Where("user_id = ?", userID).Updates(map[string]interface{}{
+		"balance":     balance,
+		"total_spent": gorm.Expr("total_spent + ?", amount),
+	}).Error; err != nil {
+		return 0, err
+	}
+	return balance, nil
 }
 
 func (s *pointService) GetMyPoints(ctx context.Context, userID uint) (*model.UserPoint, error) {
@@ -387,37 +512,59 @@ func (s *pointService) GetPointLogs(ctx context.Context, userID uint, page, size
 // 消费（购买付费文章 / 背景）
 // ============================================================================
 
+// SpendPoints 消费积分（购买付费文章 / 背景等）。
+// 幂等：事务内对幂等行加行锁串行化并发重放，已处理直接返回余额；事务内「先插购买记录
+// （唯一索引）」，重复购买（RowsAffected==0）直接返回当前余额，绝不二次扣费（修复旧实现
+// 「先扣后查」的重复扣款 bug）。新购买则按 FIFO 从未过期批次扣减，并写负向流水。
 func (s *pointService) SpendPoints(ctx context.Context, req *model.SpendPointsRequest) (int64, error) {
 	if req == nil || req.UserID == 0 || req.Amount <= 0 || req.ItemType == "" || req.ItemID == 0 {
 		return 0, ErrBadRequest
 	}
 
+	key := s.spendIdemKey(req)
 	var balance int64
+	replayed := false
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 事务内校验余额，防并发超卖
-		var cur model.UserPoint
-		if err := tx.Where("user_id = ?", req.UserID).First(&cur).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrInsufficientPoints
+		// 幂等门：行锁串行化并发重放
+		if err := s.repo.UpsertIdempotencyTx(tx, key, req.UserID, model.IdemKindSpend); err != nil {
+			return err
+		}
+		row, err := s.repo.LockIdempotencyTx(tx, key)
+		if err != nil {
+			return err
+		}
+		if row.Status == model.IdemStatusDone {
+			if b, ok := decodeIdemSpend(row.Result); ok {
+				balance = b
 			}
+			replayed = true
+			return nil
+		}
+		now := time.Now()
+		// 先插购买记录（唯一索引）：重复购买直接返回当前余额，不二次扣费
+		aff, err := s.repo.CreatePurchase(ctx, tx, &model.UserPurchase{
+			UserID:   req.UserID,
+			ItemType: req.ItemType,
+			ItemID:   req.ItemID,
+			Price:    req.Amount,
+		})
+		if err != nil {
 			return err
 		}
-		if cur.Balance < req.Amount {
-			return ErrInsufficientPoints
+		if aff == 0 {
+			var cur model.UserPoint
+			if err := tx.Where("user_id = ?", req.UserID).First(&cur).Error; err != nil {
+				return err
+			}
+			balance = cur.Balance
+			return s.repo.MarkIdempotencyDoneTx(tx, key, s.encodeIdemSpend(balance))
 		}
-		if err := tx.Model(&model.UserPoint{}).Where("user_id = ?", req.UserID).Updates(map[string]interface{}{
-			"balance":     gorm.Expr("balance - ?", req.Amount),
-			"total_spent": gorm.Expr("total_spent + ?", req.Amount),
-		}).Error; err != nil {
+		// 新购买：FIFO 扣减未过期批次
+		bal, err := s.consumeGrants(ctx, tx, req.UserID, req.Amount, now)
+		if err != nil {
 			return err
 		}
-		var after model.UserPoint
-		if err := tx.Where("user_id = ?", req.UserID).First(&after).Error; err != nil {
-			return err
-		}
-		balance = after.Balance
-
-		// 流水（负向）
+		balance = bal
 		if err := s.repo.CreateLog(ctx, tx, &model.PointLog{
 			UserID:       req.UserID,
 			Amount:       -req.Amount,
@@ -429,18 +576,15 @@ func (s *pointService) SpendPoints(ctx context.Context, req *model.SpendPointsRe
 		}); err != nil {
 			return err
 		}
-		// 已购记录（唯一索引 + DoNothing，重复购买幂等）
-		return s.repo.CreatePurchase(ctx, tx, &model.UserPurchase{
-			UserID:   req.UserID,
-			ItemType: req.ItemType,
-			ItemID:   req.ItemID,
-			Price:    req.Amount,
-		})
+		return s.repo.MarkIdempotencyDoneTx(tx, key, s.encodeIdemSpend(balance))
 	})
-	if err == nil {
+	if err != nil {
+		return 0, err
+	}
+	if !replayed {
 		s.syncBoard(ctx, req.UserID, balance)
 	}
-	return balance, err
+	return balance, nil
 }
 
 func (s *pointService) HasPurchased(ctx context.Context, userID uint, itemType string, itemID uint) (bool, error) {
@@ -515,12 +659,38 @@ func (s *pointService) AdminDeleteRule(ctx context.Context, id uint) error {
 	return s.repo.DeleteRule(ctx, id)
 }
 
-// AdminAdjustPoints 管理员手动调整（纠错 / 运营发放）
+// AdminAdjustPoints 管理员手动调整（纠错 / 运营发放）。
+// 正调整：发放积分并建批次（1 年过期）；负调整：从 FIFO 批次扣减，保证余额 = 未过期批次之和。
 func (s *pointService) AdminAdjustPoints(ctx context.Context, userID uint, amount int64, remark string) (int64, error) {
 	if userID == 0 || amount == 0 {
 		return 0, ErrBadRequest
 	}
-	balance, err := s.applyDelta(ctx, userID, amount, model.PointLogTypeAdminAdjust, "", "", 0, remark)
+	if amount > 0 {
+		balance, err := s.applyDelta(ctx, userID, amount, model.PointLogTypeAdminAdjust, "", "", 0, remark)
+		if err == nil {
+			s.syncBoard(ctx, userID, balance)
+		}
+		return balance, err
+	}
+	// 负调整：FIFO 扣减（与普通消费一致）
+	var balance int64
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if _, err := s.repo.EnsurePoint(ctx, userID); err != nil {
+			return err
+		}
+		bal, err := s.consumeGrants(ctx, tx, userID, -amount, time.Now())
+		if err != nil {
+			return err
+		}
+		balance = bal
+		return s.repo.CreateLog(ctx, tx, &model.PointLog{
+			UserID:       userID,
+			Amount:       amount,
+			BalanceAfter: balance,
+			Type:         model.PointLogTypeAdminAdjust,
+			Remark:       remark,
+		})
+	})
 	if err == nil {
 		s.syncBoard(ctx, userID, balance)
 	}
@@ -553,4 +723,74 @@ func (s *pointService) RebuildUserPointsBoard(ctx context.Context) (int, error) 
 		ok++
 	}
 	return ok, nil
+}
+
+// ============================================================================
+// 幂等辅助
+// ============================================================================
+
+// idemResult 幂等结果序列化结构（重放时直接返回）
+type idemResult struct {
+	Points  int64    `json:"points"`
+	Rules   []string `json:"rules,omitempty"`
+	Balance int64    `json:"balance"`
+}
+
+// earnIdemKey 派生加分幂等键；调用方传入则优先
+func (s *pointService) earnIdemKey(req *model.EarnPointsRequest) string {
+	if req.IdempotencyKey != "" {
+		return req.IdempotencyKey
+	}
+	return fmt.Sprintf("earn:%d:%s:%s:%d", req.UserID, req.EventType, req.RelatedType, req.RelatedID)
+}
+
+// spendIdemKey 派生消费幂等键；调用方传入则优先
+func (s *pointService) spendIdemKey(req *model.SpendPointsRequest) string {
+	if req.IdempotencyKey != "" {
+		return req.IdempotencyKey
+	}
+	return fmt.Sprintf("spend:%d:%s:%d", req.UserID, req.ItemType, req.ItemID)
+}
+
+func (s *pointService) encodeIdemEarn(r *model.EarnResult) string {
+	b, _ := json.Marshal(idemResult{Points: r.Points, Rules: r.RuleCodes})
+	return string(b)
+}
+
+func (s *pointService) encodeIdemSpend(balance int64) string {
+	b, _ := json.Marshal(idemResult{Balance: balance})
+	return string(b)
+}
+
+// decodeIdemEarn 解码已落库的加分结果（重放时使用）
+func decodeIdemEarn(result string) (*model.EarnResult, bool) {
+	var r idemResult
+	if err := json.Unmarshal([]byte(result), &r); err != nil {
+		return nil, false
+	}
+	return &model.EarnResult{Points: r.Points, RuleCodes: r.Rules}, true
+}
+
+// decodeIdemSpend 解码已落库的消费结果（重放时使用）
+func decodeIdemSpend(result string) (int64, bool) {
+	var r idemResult
+	if err := json.Unmarshal([]byte(result), &r); err != nil {
+		return 0, false
+	}
+	return r.Balance, true
+}
+
+// ============================================================================
+// 积分过期与存量迁移
+// ============================================================================
+
+// ExpireGrants 每日定时：清零过期批次并扣减账户可用余额（best-effort，失败仅告警）。
+func (s *pointService) ExpireGrants(ctx context.Context) (int64, error) {
+	return s.repo.ExpireGrants(ctx, time.Now())
+}
+
+// EnsureLegacyGrants 存量迁移：为每个「有余额但无批次」的用户生成 legacy 批次，
+// 使 FIFO/过期逻辑对存量积分生效。返回生成批次数。
+func (s *pointService) EnsureLegacyGrants(ctx context.Context) (int64, error) {
+	return s.repo.BackfillLegacyGrants(ctx)
 }

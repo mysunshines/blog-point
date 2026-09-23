@@ -193,6 +193,9 @@ func (s *Server) runMetricsServer() {
 	metricsCtx, cancel := context.WithCancel(context.Background())
 	metricsCancel = cancel
 	metrics.StartRuntimeMetrics(metricsCtx, 15*time.Second)
+	// 周期探测 DB 可用性并上报 service_health 指标（dashboard「服务实例数/健康」panel 依赖此指标）。
+	// point-service 未使用 Redis，故 redisPing 传 nil。
+	metrics.StartHealthReporter(metricsCtx, serviceName, 10*time.Second, database.Ping, nil)
 
 	mux := http.NewServeMux()
 	mux.Handle(s.cfg.Metrics.Path, promhttp.Handler())
@@ -305,6 +308,33 @@ func run() error {
 	} else {
 		log.Infof("user points board rebuilt from DB: %d users", n)
 	}
+
+	// ⑥'' 存量积分迁移：为「有余额但无批次」的用户生成 legacy 批次，
+	//     使 FIFO 消费与 1 年过期逻辑对存量积分也生效（best-effort）。
+	if n, err := srv.pointSvc.EnsureLegacyGrants(context.Background()); err != nil {
+		log.Warnf("ensure legacy grants failed: %v", err)
+	} else if n > 0 {
+		log.Infof("legacy grants backfilled: %d users", n)
+	}
+
+	// ⑥''' 每日积分过期任务（后台 goroutine）：清零过期批次并扣减账户可用余额。
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		// 启动后先跑一次，清理跨重启期间到期的批次
+		if n, err := srv.pointSvc.ExpireGrants(context.Background()); err != nil {
+			log.Warnf("expire grants failed: %v", err)
+		} else if n > 0 {
+			log.Infof("expired grants on startup: %d", n)
+		}
+		for range ticker.C {
+			if n, err := srv.pointSvc.ExpireGrants(context.Background()); err != nil {
+				log.Warnf("expire grants failed: %v", err)
+			} else if n > 0 {
+				log.Infof("expired grants: %d", n)
+			}
+		}
+	}()
 
 	if err := srv.Run(); err != nil {
 		return fmt.Errorf("server exit: %v", err)

@@ -141,6 +141,7 @@ message EarnPointsRequest {
     string context = 3;       // JSON 上下文，供 condition 匹配（如 {"streak":7,"rank":3}）
     string related_type = 4;  // article / background ...
     uint32 related_id = 5;
+    string idempotency_key = 6; // 可选：幂等键；为空时由服务端按 user+event+related 派生
 }
 message EarnPointsResponse {
     uint32 code = 1;
@@ -156,6 +157,7 @@ message SpendPointsRequest {
     string item_type = 3;     // article / background
     uint32 item_id = 4;
     string remark = 5;
+    string idempotency_key = 6; // 可选：幂等键；为空时由服务端按 user+item 派生
 }
 message SpendPointsResponse {
     uint32 code = 1;

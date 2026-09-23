@@ -83,6 +83,62 @@ type UserPurchase struct {
 
 func (UserPurchase) TableName() string { return "user_purchases" }
 
+// ============================================================================
+// 积分批次（lot）：支撑「1 年过期 + FIFO 先扣早期积分」
+// ----------------------------------------------------------------------------
+// 设计要点：
+//   1. 账户余额（user_points.balance）语义改为「当前可用积分」= Σ未过期批次的 remaining。
+//   2. 每次获得积分插入一条 grant（expires_at = earned_at + 1 年）；消费时按
+//      earned_at ASC 从最早的批次扣减（FIFO）；过期由每日任务清零并扣减 balance。
+//   3. remaining 为仍可消费的积分；consumed 标记已过期清零，避免重复过期。
+// ============================================================================
+
+// PointGrant 积分批次（一笔获得 = 一个批次）
+type PointGrant struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	UserID    uint      `gorm:"not null;index:idx_grant_user_exp" json:"user_id"`
+	Amount    int64     `gorm:"not null" json:"amount"`       // 原始发放量
+	Remaining int64     `gorm:"not null" json:"remaining"`    // 还可消费的量
+	EarnedAt  time.Time `gorm:"not null" json:"earned_at"`    // 获得时间
+	ExpiresAt time.Time `gorm:"not null;index:idx_grant_user_exp" json:"expires_at"` // 过期时间（earned_at + 1 年）
+	Consumed  bool      `gorm:"not null;default:false" json:"consumed"`              // 已过期清零标记
+}
+
+func (PointGrant) TableName() string { return "point_grants" }
+
+// GrantExpiry 计算积分过期时间：「获得时间 + 1 年」（按日历，次年同月同日）。
+func GrantExpiry(earnedAt time.Time) time.Time {
+	return earnedAt.AddDate(1, 0, 0)
+}
+
+// ============================================================================
+// 幂等表：所有加分 / 消费先占坑，重放直接返回首次结果，杜绝重复加 / 扣
+// ============================================================================
+
+// PointIdempotency 幂等记录（key 唯一）
+type PointIdempotency struct {
+	Key       string    `gorm:"primaryKey;size:191" json:"key"` // 业务唯一键（调用方传入或系统派生）
+	UserID    uint      `gorm:"not null;index" json:"user_id"`
+	Kind      string    `gorm:"not null;size:16" json:"kind"`   // earn / spend
+	Status    string    `gorm:"not null;size:16;default:'done'" json:"status"` // pending / done
+	Result    string    `gorm:"type:text" json:"result"`        // 序列化结果（JSON），重放时直接返回
+	CreatedAt time.Time `gorm:"<-:create" json:"created_at"`
+}
+
+func (PointIdempotency) TableName() string { return "point_idempotency" }
+
+// 幂等种类
+const (
+	IdemKindEarn  = "earn"
+	IdemKindSpend = "spend"
+)
+
+// 幂等状态
+const (
+	IdemStatusPending = "pending"
+	IdemStatusDone    = "done"
+)
+
 // 积分流水类型
 const (
 	PointLogTypeEarn        = "earn"         // 规则/事件获得
@@ -116,11 +172,12 @@ const (
 
 // EarnPointsRequest 事件加分入参（service 层）
 type EarnPointsRequest struct {
-	UserID      uint
-	EventType   string
-	Context     map[string]interface{} // 供 condition 匹配的上下文
-	RelatedType string
-	RelatedID   uint
+	UserID         uint
+	EventType      string
+	Context        map[string]interface{} // 供 condition 匹配的上下文
+	RelatedType    string
+	RelatedID      uint
+	IdempotencyKey string // 可选：调用方传入则用作幂等键；为空时由系统按 user+event+related 派生
 }
 
 // EarnResult 事件加分结果
@@ -131,9 +188,10 @@ type EarnResult struct {
 
 // SpendPointsRequest 消费入参（service 层）
 type SpendPointsRequest struct {
-	UserID   uint
-	Amount   int64
-	ItemType string
-	ItemID   uint
-	Remark   string
+	UserID         uint
+	Amount         int64
+	ItemType       string
+	ItemID         uint
+	Remark         string
+	IdempotencyKey string // 可选：调用方传入则用作幂等键；为空时由系统按 user+item 派生
 }

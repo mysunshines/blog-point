@@ -53,11 +53,12 @@ func (h *GrpcPointHandler) EarnPoints(ctx context.Context, req *pb.EarnPointsReq
 		}
 	}
 	res, err := h.Svc.EarnPoints(ctx, &model.EarnPointsRequest{
-		UserID:      uint(req.UserId),
-		EventType:   req.EventType,
-		Context:     ctxMap,
-		RelatedType: req.RelatedType,
-		RelatedID:   uint(req.RelatedId),
+		UserID:         uint(req.UserId),
+		EventType:      req.EventType,
+		Context:        ctxMap,
+		RelatedType:    req.RelatedType,
+		RelatedID:      uint(req.RelatedId),
+		IdempotencyKey: req.IdempotencyKey,
 	})
 	if err != nil {
 		return &pb.EarnPointsResponse{Code: errCode(err), Message: err.Error()}, nil
@@ -76,11 +77,12 @@ func (h *GrpcPointHandler) SpendPoints(ctx context.Context, req *pb.SpendPointsR
 		return &pb.SpendPointsResponse{Code: uint32(pb.PointErrorCode_POINT_BAD_REQUEST), Message: "invalid request"}, nil
 	}
 	balance, err := h.Svc.SpendPoints(ctx, &model.SpendPointsRequest{
-		UserID:   uint(req.UserId),
-		Amount:   req.Amount,
-		ItemType: req.ItemType,
-		ItemID:   uint(req.ItemId),
-		Remark:   req.Remark,
+		UserID:         uint(req.UserId),
+		Amount:         req.Amount,
+		ItemType:       req.ItemType,
+		ItemID:         uint(req.ItemId),
+		Remark:         req.Remark,
+		IdempotencyKey: req.IdempotencyKey,
 	})
 	if err != nil {
 		return &pb.SpendPointsResponse{Code: errCode(err), Message: err.Error()}, nil

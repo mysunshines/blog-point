@@ -2,7 +2,7 @@
 
 > 自动生成自 `point.proto`（模式：proto）。
 > 网关按 `/api/v1/point/<snake_method>` 反射代理到 gRPC 方法 `point.v1.PointService/<Method>`。
-> 生成时间：2026-09-22 13:23:54
+> 生成时间：2026-09-23 17:30:38
 > Base URL（网关入口）：http://localhost:8081
 
 ## 接口列表
@@ -21,7 +21,7 @@
 
 ## CheckIn
 
-- **URL**: `http://localhost:8081/api/v1/point/check_in?code=0&message=<message>&checked_in_today=false&streak=0&last_checkin_date=<last_checkin_date>&code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0`
+- **URL**: `http://localhost:8081/api/v1/point/check_in?code=0&message=<message>&checked_in_today=false&streak=0&last_checkin_date=<last_checkin_date>&code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&idempotency_key=<idempotency_key>&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&idempotency_key=<idempotency_key>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0`
 - **Method**: `GET`
 - **鉴权**: 登录（需 JWT）
 
@@ -59,6 +59,7 @@ Content-Type: application/json
 | `context` | `string` | JSON 上下文，供 condition 匹配（如 {"streak":7,"rank":3}） | `""` |
 | `related_type` | `string` | article / background ... | `""` |
 | `related_id` | `uint32` |  | `0` |
+| `idempotency_key` | `string` | 可选：幂等键；为空时由服务端按 user+event+related 派生 | `""` |
 | `code` | `uint32` |  | `0` |
 | `message` | `string` |  | `""` |
 | `points` | `int64` | 实际发放积分 | `0` |
@@ -68,6 +69,7 @@ Content-Type: application/json
 | `item_type` | `string` | article / background | `""` |
 | `item_id` | `uint32` |  | `0` |
 | `remark` | `string` |  | `""` |
+| `idempotency_key` | `string` | 可选：幂等键；为空时由服务端按 user+item 派生 | `""` |
 | `code` | `uint32` |  | `0` |
 | `message` | `string` |  | `""` |
 | `balance` | `int64` | 消费后余额 | `0` |
@@ -114,7 +116,7 @@ Content-Type: application/json
 
 **Query 示例**：
 ```json
-code=0&message=<message>&checked_in_today=false&streak=0&last_checkin_date=<last_checkin_date>&code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0
+code=0&message=<message>&checked_in_today=false&streak=0&last_checkin_date=<last_checkin_date>&code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&idempotency_key=<idempotency_key>&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&idempotency_key=<idempotency_key>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0
 ```
 
 ### Response
@@ -131,13 +133,13 @@ code=0&message=<message>&checked_in_today=false&streak=0&last_checkin_date=<last
 
 ### curl 示例
 ```bash
-curl -X GET 'http://localhost:8081/api/v1/point/check_in?code=0&message=<message>&checked_in_today=false&streak=0&last_checkin_date=<last_checkin_date>&code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0' \
+curl -X GET 'http://localhost:8081/api/v1/point/check_in?code=0&message=<message>&checked_in_today=false&streak=0&last_checkin_date=<last_checkin_date>&code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&idempotency_key=<idempotency_key>&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&idempotency_key=<idempotency_key>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0' \
   -H 'Authorization: Bearer <token>'
 ```
 
 ## GetMyPoints
 
-- **URL**: `http://localhost:8081/api/v1/point/get_my_points?code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0`
+- **URL**: `http://localhost:8081/api/v1/point/get_my_points?code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&idempotency_key=<idempotency_key>&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&idempotency_key=<idempotency_key>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0`
 - **Method**: `GET`
 - **鉴权**: 公开（无需鉴权）
 
@@ -165,6 +167,7 @@ Content-Type: application/json
 | `context` | `string` | JSON 上下文，供 condition 匹配（如 {"streak":7,"rank":3}） | `""` |
 | `related_type` | `string` | article / background ... | `""` |
 | `related_id` | `uint32` |  | `0` |
+| `idempotency_key` | `string` | 可选：幂等键；为空时由服务端按 user+event+related 派生 | `""` |
 | `code` | `uint32` |  | `0` |
 | `message` | `string` |  | `""` |
 | `points` | `int64` | 实际发放积分 | `0` |
@@ -174,6 +177,7 @@ Content-Type: application/json
 | `item_type` | `string` | article / background | `""` |
 | `item_id` | `uint32` |  | `0` |
 | `remark` | `string` |  | `""` |
+| `idempotency_key` | `string` | 可选：幂等键；为空时由服务端按 user+item 派生 | `""` |
 | `code` | `uint32` |  | `0` |
 | `message` | `string` |  | `""` |
 | `balance` | `int64` | 消费后余额 | `0` |
@@ -220,7 +224,7 @@ Content-Type: application/json
 
 **Query 示例**：
 ```json
-code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0
+code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&idempotency_key=<idempotency_key>&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&idempotency_key=<idempotency_key>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0
 ```
 
 ### Response
@@ -237,7 +241,7 @@ code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&eve
 
 ### curl 示例
 ```bash
-curl -X GET 'http://localhost:8081/api/v1/point/get_my_points?code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0'
+curl -X GET 'http://localhost:8081/api/v1/point/get_my_points?code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&idempotency_key=<idempotency_key>&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&idempotency_key=<idempotency_key>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0'
 ```
 
 ## GetPointLogs
@@ -284,7 +288,7 @@ curl -X GET 'http://localhost:8081/api/v1/point/get_point_logs?page=0&page_size=
 
 ## GetCheckinStatus
 
-- **URL**: `http://localhost:8081/api/v1/point/get_checkin_status?code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0`
+- **URL**: `http://localhost:8081/api/v1/point/get_checkin_status?code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&idempotency_key=<idempotency_key>&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&idempotency_key=<idempotency_key>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0`
 - **Method**: `GET`
 - **鉴权**: 公开（无需鉴权）
 
@@ -315,6 +319,7 @@ Content-Type: application/json
 | `context` | `string` | JSON 上下文，供 condition 匹配（如 {"streak":7,"rank":3}） | `""` |
 | `related_type` | `string` | article / background ... | `""` |
 | `related_id` | `uint32` |  | `0` |
+| `idempotency_key` | `string` | 可选：幂等键；为空时由服务端按 user+event+related 派生 | `""` |
 | `code` | `uint32` |  | `0` |
 | `message` | `string` |  | `""` |
 | `points` | `int64` | 实际发放积分 | `0` |
@@ -324,6 +329,7 @@ Content-Type: application/json
 | `item_type` | `string` | article / background | `""` |
 | `item_id` | `uint32` |  | `0` |
 | `remark` | `string` |  | `""` |
+| `idempotency_key` | `string` | 可选：幂等键；为空时由服务端按 user+item 派生 | `""` |
 | `code` | `uint32` |  | `0` |
 | `message` | `string` |  | `""` |
 | `balance` | `int64` | 消费后余额 | `0` |
@@ -370,7 +376,7 @@ Content-Type: application/json
 
 **Query 示例**：
 ```json
-code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0
+code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&idempotency_key=<idempotency_key>&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&idempotency_key=<idempotency_key>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0
 ```
 
 ### Response
@@ -387,7 +393,7 @@ code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&mess
 
 ### curl 示例
 ```bash
-curl -X GET 'http://localhost:8081/api/v1/point/get_checkin_status?code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0'
+curl -X GET 'http://localhost:8081/api/v1/point/get_checkin_status?code=0&message=<message>&code=0&message=<message>&page=0&page_size=0&code=0&message=<message>&total=0&event_type=<event_type>&user_id=0&context=<context>&related_type=<related_type>&related_id=0&idempotency_key=<idempotency_key>&code=0&message=<message>&points=0&rules=<rules>&user_id=0&amount=0&item_type=<item_type>&item_id=0&remark=<remark>&idempotency_key=<idempotency_key>&code=0&message=<message>&balance=0&user_id=0&item_type=<item_type>&item_id=0&code=0&message=<message>&purchased=false&code=0&message=<message>&code=<code>&name=<name>&event_type=<event_type>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&sort=0&code=0&message=<message>&rule_id=0&name=<name>&condition=<condition>&points=0&limit_type=<limit_type>&limit_count=0&status=0&sort=0&code=0&message=<message>&rule_id=0&code=0&message=<message>&user_id=0&amount=0&remark=<remark>&code=0&message=<message>&balance=0'
 ```
 
 ## AdminListRules
